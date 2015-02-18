@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 # EODN_Harvest_0_1_18.py
 #
 # Harvest data from USGS EROS
@@ -59,6 +59,8 @@ import unisencoder.dispatcher as unisDispatch
 from suds.client import Client
 from lxml import etree
 
+import settings
+
 # logging.basicConfig(level=logging.INFO)
 if __debug__:
     logging.getLogger('suds.client').setLevel(logging.DEBUG)
@@ -66,23 +68,24 @@ else:
     logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
 # read config file
-config = {}
-with open('./harvest.cfg') as f:
-    for line in f:
-        li = line.strip()
-        if not ((li.startswith('#')) or (li == '')):
-            key = li.split(' ')[0]
-            value = li.split(' ')[1]
-            if key == 'start' and value != 'None':
-                value = value + ' ' + li.split(' ')[2]
-            if value == 'True':
-                config[key] = True
-            elif value == 'False':
-                config[key] = False
-            elif value == 'None':
-                config[key] = None
-            else:
-                config[key] = value
+config = settings.config
+#config = {}
+#with open('./harvest.cfg') as f:
+#    for line in f:
+#        li = line.strip()
+#        if not ((li.startswith('#')) or (li == '')):
+#            key = li.split(' ')[0]
+#            value = li.split(' ')[1]
+#            if key == 'start' and value != 'None':
+#                value = value + ' ' + li.split(' ')[2]
+#            if value == 'True':
+#                config[key] = True
+#            elif value == 'False':
+#                config[key] = False
+#            elif value == 'None':
+#                config[key] = None
+#            else:
+#                config[key] = value
 
 retry = int(config['retry'])
 downloads = 0
@@ -751,14 +754,16 @@ class Process(object):
         results = call(['lodn_importExnode', xnd_path, lodn_path])  # import the exNode to loDN
         return results
 
-    def unis_import(self, xnd_filename, xnd_path):
+    def unis_import(self, xnd_filename, xnd_path, product_id):
         logger.write('Importing exnode to UNIS')
+        parts = self.deconstruct(product_id)
+        scene_id = self.get_attribs('data_type') + ',' + parts['path'] + ',' + parts['row'] + ',' + parts['ymd']
         dispatch = unisDispatch.Dispatcher()
         unis_root = unisDispatch.create_remote_directory("root", None)
         extended_dir = unisDispatch.parse_filename(xnd_filename)
         
         parent = unisDispatch.create_directories(extended_dir, unis_root)
-        dispatch.DispatchFile(xnd_path, parent)
+        dispatch.DispatchFile(xnd_path, parent, metadata = { "scene_id": scene_id })
 
     def add_to_glovis(self, product_id):
         parts = self.deconstruct(product_id)
@@ -1099,7 +1104,7 @@ def main():
 
                     if config['unis_import']:
                         logger.write('       Importing ' + file_name + ' to UNIS')
-                        process.unis_import(file_name, xnd_path)
+                        process.unis_import(file_name, xnd_path, base_name)
                     else:
                         logger.write('       Skipping UNIS import...')
 
