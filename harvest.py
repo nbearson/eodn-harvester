@@ -756,8 +756,7 @@ class Process(object):
 
     def unis_import(self, xnd_filename, xnd_path, product_id):
         logger.write('Importing exnode to UNIS')
-        parts = self.deconstruct(product_id)
-        scene_id = self.get_attribs('data_type') + ',' + parts['path'] + ',' + parts['row'] + ',' + parts['ymd']
+        scene_id = product_id[0:16]
         dispatch = unisDispatch.Dispatcher()
         unis_root = unisDispatch.create_remote_directory("root", None)
         extended_dir = unisDispatch.parse_filename(xnd_filename)
