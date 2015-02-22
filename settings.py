@@ -134,7 +134,7 @@ config = {
 # glovis: flag to control upload to GloVis
 # glovis
 
-    "glovis": False,
+    "glovis": True,
 
 # glovis_url: the URL of a GloVis Server
 # if this parameter is None, glovis_url will be populated
@@ -155,7 +155,7 @@ config = {
 # avmss: flag to control upload to AVMSS
 # avmss True send scene to AVMSS
 
-    "avmss": False,
+    "avmss": True,
 
 # avmss_url: url of the AVMSS server ingest script
 # set avmss_url None to disable loading to AVMSS
