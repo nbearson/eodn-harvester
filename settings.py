@@ -104,7 +104,7 @@ config = {
 
 # sort: Sort order for search results
 
-    "sort": "ASC",
+    "sort": "DESC",
 
 # retry: The number of times to retry M2M functions
 # Default = 10
