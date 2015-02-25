@@ -719,7 +719,7 @@ class Process(object):
         results = '0'
         for i in range(retry):
             try:
-                results = call(['lors_upload', '--duration=720h', '--none', '-c', '1', '-H', 'dlt.incntre.iu.edu', '-V', '1', '-o', xnd_file, file])
+                results = call(['lors_upload', '--duration=720h', '--none', '-c', '1', '-m'  20, '-t', 10, '-b', '10m', '-X', '~/.xndrc', '-V', '1', '-o', xnd_file, file])
                 if results == 0:
                     break
             except Exception as e:
