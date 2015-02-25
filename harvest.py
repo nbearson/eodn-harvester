@@ -758,7 +758,7 @@ class Process(object):
         logger.write('Importing exnode to UNIS')
         scene_id = product_id[0:21]
         dispatch = unisDispatch.Dispatcher()
-        unis_root = unisDispatch.create_remote_directory("root", None)
+        unis_root = unisDispatch.create_remote_directory("Landsat", None)
         extended_dir = unisDispatch.parse_filename(xnd_filename)
         
         parent = unisDispatch.create_directories(extended_dir, unis_root)
