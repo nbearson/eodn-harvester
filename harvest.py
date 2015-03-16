@@ -292,9 +292,14 @@ class Search(object):
         self.attribs = kwargs
         self.attribs['client_obj'] = None  # the SOAP client for the search
         self.attribs['data_set'] = None  # this gets set in sub classes for each data_set type
-        self.attribs['end_date'] = datetime.datetime.now()  # ending date - default now
+        if config['end'] is not None:
+            self.attribs['end_date'] = datetime.datetime.strptime(config['end'], '%Y-%m-%d %H:%M:%S.%f')
+        else:
+            self.attribs['end_date'] = datetime.datetime.now()  # ending date - default now
         # convert start date to datetime format or caculate as offset from Now.
-        if config['start'] is None:
+        if config['start'] is None and config['end']:
+            self.attribs['start_date'] = self.attribs['end_date'] - timedelta(days=int(config['days']))
+        elif config['start'] is None and config['end'] is None:
             self.attribs['start_date'] = datetime.datetime.now() - timedelta(days=int(config['days']))
         else:
             self.attribs['start_date'] = datetime.datetime.strptime(config['start'], '%Y-%m-%d %H:%M:%S.%f')

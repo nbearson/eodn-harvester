@@ -52,18 +52,24 @@ config = {
 # ll: the lower left corner of the AOI bounding box in decimal degrees
 
     "ll": "-124.59,24.52",
+#    "ll": "-120,37",
 
 # ur: the uppser right corner of the AOI bounding box in decimal degrees
     "ur": "-66.95,49.4",
+#    "ur": "-118,39",
 
 # start: the starting date for the moving search window
-# is start is None then start is calculated as Now - <days>
+# if start is None then start is calculated as Now - <days>
 
     "start": None,
-#start 2014-10-17 20:40:42.706328
+#   "start": "2014-10-17 20:40:42.706328",
+
+# end: the ending date for the search window
+# if end is None, then end is defined as Now
+#    "end": "2013-10-25 00:00:00.0",
 
 # days: the number of days for the search window.  
-# Starting date is today - days.  Ending date is today
+# Starting date is today (or end) - days.  Ending date is today
 
     "days": "1",
 
@@ -180,6 +186,7 @@ config = {
 #workspace /data/prb/eodn/
 #workspace /data/prb/eodn/test/
     "workspace": "/data/jemusser/",
+#    "workspace": "/data/GEC22_demo/",
 
 # pause: wait time between files in seconds
 
