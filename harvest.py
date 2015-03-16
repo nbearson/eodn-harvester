@@ -724,7 +724,16 @@ class Process(object):
         results = '0'
         for i in range(retry):
             try:
-                results = call(['lors_upload', '--duration=720h', '--none', '-c', '1', '-m',  '20', '-t', '10', '-b', '10m', '--depot-list', '-X', '/root/.xndrc', '-V', '1', '-o', xnd_file, file])
+                duration = "--duration={0}h".format(config['lors_duration'])
+                results = call(['lors_upload', duration, 
+                                '--none', '-c', '1', 
+                                '-m', str(config['lors_depots']), 
+                                '-t', str(config['lors_threads']), 
+                                '-b', str(config['lors_size']), 
+                                '--depot-list', 
+                                '-X', config['lors_xndrc'], 
+                                '-V', '1', 
+                                '-o', xnd_file, file])
                 if results == 0:
                     break
             except Exception as e:
@@ -762,11 +771,11 @@ class Process(object):
     def unis_import(self, xnd_filename, xnd_path, product_id):
         logger.write('Importing exnode to UNIS')
         scene_id = product_id[0:21]
-        dispatch = unisDispatch.Dispatcher()
-        unis_root = unisDispatch.create_remote_directory("Landsat", None)
+        dispatch = unisDispatch.Dispatcher(duration = config['lors_duration'], host = config['unis_host'], port = config['unis_port'])
+        unis_root = dispatch.CreateRemoteDirectory("Landsat", None)
         extended_dir = unisDispatch.parse_filename(xnd_filename)
         
-        parent = unisDispatch.create_directories(extended_dir, unis_root)
+        parent = unisDispatch.create_directories(dispatch, extended_dir, unis_root)
         dispatch.DispatchFile(xnd_path, parent, metadata = { "scene_id": scene_id })
 
     def add_to_glovis(self, product_id):

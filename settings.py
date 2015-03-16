@@ -67,11 +67,12 @@ config = {
 # end: the ending date for the search window
 # if end is None, then end is defined as Now
 #    "end": "2013-10-25 00:00:00.0",
+    "end": None,
 
 # days: the number of days for the search window.  
 # Starting date is today (or end) - days.  Ending date is today
 
-    "days": "1",
+    "days": "13",
 
 # max_recs: the number of records to return in each batch of search results
 # The allowable range is between 1 and about 20.  More than that will
@@ -273,4 +274,17 @@ config = {
 # default True
 
     "unis_import": True,
+    "unis_host": "http://localhost",
+    "unis_port": "8888",
+
+#**********************************************************
+#                                                         #
+#                      LORS Flags                         #
+#                                                         #
+#**********************************************************
+    "lors_duration": 720,
+    "lors_threads":  10,
+    "lors_depots":   20,
+    "lors_size":    "10m",
+    "lors_xndrc":   "/root/.xndrc",
     }
