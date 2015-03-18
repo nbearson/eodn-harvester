@@ -282,7 +282,7 @@ config = {
 #                      LORS Flags                         #
 #                                                         #
 #**********************************************************
-    "lors_duration": 720,
+    "lors_duration": 3,
     "lors_threads":  10,
     "lors_depots":   20,
     "lors_size":    "10m",
