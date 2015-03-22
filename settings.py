@@ -274,7 +274,7 @@ config = {
 # default True
 
     "unis_import": True,
-    "unis_host": "http://localhost",
+    "unis_host": "http://dev.incntre.iu.edu",
     "unis_port": "8888",
 
 #**********************************************************
