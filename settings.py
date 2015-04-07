@@ -72,7 +72,7 @@ config = {
 # days: the number of days for the search window.  
 # Starting date is today (or end) - days.  Ending date is today
 
-    "days": "13",
+    "days": "1",
 
 # max_recs: the number of records to return in each batch of search results
 # The allowable range is between 1 and about 20.  More than that will
@@ -249,7 +249,7 @@ config = {
 # setting file_delete to True may result in a large accumulation of files
 # default True
 
-    "file_delete": False,
+    "file_delete": True,
 
 # lors_upload: upload files to EODN using LoRS
 # Setting lors to False prevents uploads to EODN
@@ -274,6 +274,7 @@ config = {
 # default True
 
     "unis_import": True,
+#    "unis_host": "http://localhost",
     "unis_host": "http://dev.incntre.iu.edu",
     "unis_port": "8888",
 
@@ -282,7 +283,7 @@ config = {
 #                      LORS Flags                         #
 #                                                         #
 #**********************************************************
-    "lors_duration": 3,
+    "lors_duration": 20 * 24, # 20 day window
     "lors_threads":  10,
     "lors_depots":   20,
     "lors_size":    "10m",

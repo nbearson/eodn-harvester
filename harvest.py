@@ -650,8 +650,10 @@ class Process(object):
     def chunk_read(self, response, file_path, usgs_filesize, chunk_size=8192, report_hook=None):
         #total_size = response.info().getheader('Content-Length').strip()
         if response.info().get('content-length') is None:
+            logger.write("        No size provided, using usgs_filesize")
             total_size = usgs_filesize
         else:
+            logger.write("        Using provided filzesize")
             total_size = int(response.info().get('content-length'))
         bytes_so_far = 0
         outfile = open(file_path, 'ab')
@@ -1008,6 +1010,7 @@ def main():
             logger.write('  Found ' + str(len(products)) + ' products')
 
             for product in products:
+                do_import = True
                 # Make sure this product is available
                 if args.avmss and product.get_attribs('download_code') != 'FR_BUND':
                     # skip everything but landsatLook bundles
@@ -1095,13 +1098,14 @@ def main():
                         logger.write('       Uploading ' + file_path + ' to EODN')
                         result = process.upload_to_eodn(xnd_file=xnd_path, file=file_path)
                         if result != 0:
+                            do_import = False
                             logger.write_error('line 838: lors_upload failed for ' + base_name)
                             logger.write_error('result')
                     else:
                         logger.write('       Skipping LoRS upload...')
 
                     # Import the exNode to LoDN
-                    if config['lodn_import']:
+                    if config['lodn_import'] and do_import:
                         logger.write('       Building LoDN directory structure')
                         process.build_lodn_dir(product_id=base_name)
                         logger.write('       Success - built ' + lodn_path)
@@ -1115,7 +1119,7 @@ def main():
                     else:
                         logger.write('       Skipping LoDN import...')
 
-                    if config['unis_import']:
+                    if config['unis_import'] and do_import:
                         logger.write('       Importing ' + file_name + ' to UNIS')
                         process.unis_import(file_name, xnd_path, base_name)
                     else:
