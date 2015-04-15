@@ -69,10 +69,10 @@ config = {
 #    "end": "2013-10-25 00:00:00.0",
     "end": None,
 
-# days: the number of days for the search window.  
-# Starting date is today (or end) - days.  Ending date is today
+# harvest-window: the search window as a timedelta dictionary.  
+# Starting date is today (or end) - harvest-window.  Ending date is today
 
-    "days": "1",
+    "harvest-window": { "minutes": 30 },
 
 # max_recs: the number of records to return in each batch of search results
 # The allowable range is between 1 and about 20.  More than that will
@@ -283,7 +283,7 @@ config = {
 #                      LORS Flags                         #
 #                                                         #
 #**********************************************************
-    "lors_duration": 20 * 24, # 20 day window
+    "lors_duration": 30 * 24, # 20 day window
     "lors_threads":  10,
     "lors_depots":   20,
     "lors_size":    "10m",

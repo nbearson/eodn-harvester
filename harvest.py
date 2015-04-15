@@ -298,14 +298,11 @@ class Search(object):
             self.attribs['end_date'] = datetime.datetime.now()  # ending date - default now
         # convert start date to datetime format or caculate as offset from Now.
         if config['start'] is None and config['end']:
-            self.attribs['start_date'] = self.attribs['end_date'] - timedelta(days=int(config['days']))
+            self.attribs['start_date'] = self.attribs['end_date'] - timedelta(**config["harvest-window"])
         elif config['start'] is None and config['end'] is None:
-            self.attribs['start_date'] = datetime.datetime.now() - timedelta(days=int(config['days']))
+            self.attribs['start_date'] = datetime.datetime.utcnow() - timedelta(**config["harvest-window"])
         else:
             self.attribs['start_date'] = datetime.datetime.strptime(config['start'], '%Y-%m-%d %H:%M:%S.%f')
-        # Have to have at least one day's data to process
-        if (self.attribs['end_date'] - self.attribs['start_date']).days == 0:
-            self.attribs['start_date'] = self.attribs['start_date'] - timedelta(1, 0, 0)
         self.attribs['sort'] = config['sort']  # Sort order ['ASC', 'DESC'] - default 'ASC'
         self.attribs['criteria'] = None  # config['criteria']  # Additional criteria - default None
         self.attribs['max_recs'] = int(config['max_recs'])  # maximum number of records to return
