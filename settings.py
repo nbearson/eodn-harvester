@@ -74,6 +74,9 @@ config = {
 
     "harvest-window": { "minutes": 30 },
 
+# limit_entities:  the maximum number of entities to upload in a pass
+    "limit_entities": None,
+
 # max_recs: the number of records to return in each batch of search results
 # The allowable range is between 1 and about 20.  More than that will
 # time out
@@ -117,6 +120,21 @@ config = {
 # Default = 10
 
     "retry": "10",
+
+# harvest_once:  Maintains a record of previously harvested
+#                files and discards repeated entries.
+    "harvest_once": True,
+
+# history: A path to the history of the harvester; a list of
+#          files already harvested
+    "history": "/data/jemusser/hist.json",
+
+# record_limit: The number of days to keep records for.
+    "record_limit": { "days": 30 },
+
+# report-email:  The email used when reporting current statistics
+    "report-email": "jemusser@umail.iu.edu",
+
 
 #**********************************************************
 #                                                         #
@@ -283,7 +301,7 @@ config = {
 #                      LORS Flags                         #
 #                                                         #
 #**********************************************************
-    "lors_duration": 30 * 24, # 20 day window
+    "lors_duration": 30 * 24, # 30 day window
     "lors_threads":  10,
     "lors_depots":   20,
     "lors_size":    "10m",

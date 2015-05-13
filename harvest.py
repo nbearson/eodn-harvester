@@ -8,6 +8,7 @@
 #   Requires a login account with EROS
 #
 #   Change Log:
+#       4/8/2015    Added harvest_once to ensure record uniqueness - Jeremy Musser
 #       2/14/2015   Add Alternate path for UNIS uploads - Jeremy Musser
 #       9/2014      Initial Coding - PR Blackwell
 #       9/9/2014    fix_wsdl and other wizardry - Chris Brumgard
@@ -52,6 +53,7 @@ from subprocess import call
 import urllib2
 import shutil
 import ntpath
+import json
 from urllib2 import urlopen
 import random
 import re
@@ -60,6 +62,7 @@ from suds.client import Client
 from lxml import etree
 
 import settings
+from settings import config
 
 # logging.basicConfig(level=logging.INFO)
 if __debug__:
@@ -67,8 +70,28 @@ if __debug__:
 else:
     logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
+if os.path.isfile(config["history"]):
+    with open(config["history"], 'r') as f:
+        history = json.loads(f.read())
+else:
+    history = {}
+
+run_date = datetime.datetime.utcnow().strftime("%m-%d-%Y %H:%M:00")
+history[run_date] = []
+seen_files = {}
+to_remove = []
+
+for key, run in history.iteritems():
+    record_time = datetime.datetime.strptime(key, "%m-%d-%Y %H:%M:%S")
+    if datetime.datetime.utcnow() - record_time > timedelta(**config["record_limit"]):
+        to_remove.append(key)
+    for exnode in run:
+        seen_files[exnode["name"]] = True
+
+for key in to_remove:
+    history.remove(key)
+
 # read config file
-config = settings.config
 #config = {}
 #with open('./harvest.cfg') as f:
 #    for line in f:
@@ -554,8 +577,12 @@ class Process(object):
                 logger.write_error('Success: apiKey = ' + str(apikey))
 
         if len(response) > 0:
-            return response.item[0]
-
+            try:
+                return response.item[0]
+            except Exception as exp:
+                logger.write_error("       Failed to retrieve URL: {0} - {1}".format(exp, response))
+                return None
+                
     def get_urls(self, client, apikey, product_ids,
                  products):  # returns a array of download URLs for available products
         logger.write('Retrieving URLs')
@@ -892,6 +919,7 @@ def main():
 
     # fix bad wsdl file from USGS
     url = '''file://''' + fix_wsdl(wsdlurl=config['usgs_url'])  # Fix the wsdl URL
+    current_record = 1
     # instantiate SOAP client
 
     try:
@@ -899,6 +927,11 @@ def main():
 
     except:
         logger.write_error('Error instantiating SOAP client: ', sys.exc_into())
+
+    if config['limit_entities'] is None:
+        max_entities = 200
+    else:
+        max_entities = config['limit_entities']
 
     # login - return apiKey
     if config['usgs_login'] is None:
@@ -909,7 +942,7 @@ def main():
         pword = getpass.getpass()
     else:
         pword = config['usgs_password']
-    logger.write('loggin in...')
+    logger.write('logging in...')
     try:
         apikey = client.service.login(uname, pword)
         assert isinstance(apikey, object)
@@ -964,7 +997,7 @@ def main():
                     logger.write_error('Success: apiKey = ' + str(apikey))
                 break
 
-        logger.write('Found ' + str(len(search.get_attribs('entities').item)) + ' scenes:')
+        logger.write('Found ' + str(len(search.get_attribs('entities').item)) + ' scenes:' + (' [Max ' + str(max_entities) + ']' if config['limit_entities'] else ''))
         if config['bad_files']:
             logger.write('Processing bad file list')
         else:
@@ -983,7 +1016,8 @@ def main():
         logger.write('number found: ' + str(len(search.get_attribs('entities').item)))
         # cycle through the scenes\
         for entity in search.get_attribs('entities').item:
-            logger.write('**Processing ' + entity + ' ...')
+            logger.write('**Processing ' + entity + ' ...[' + str(current_record) + '/' + str(search.get_attribs('totalHits')) + ']')
+            current_record += 1
 
             if config['bad_files']:
                 product_code = process.split_filename(entity=entity,part='product_code')
@@ -1043,6 +1077,10 @@ def main():
                     logger.write('       lodn_path: ' + lodn_path)
                     logger.write('       xnd_path: ' + xnd_path)
 
+                    if file_name in seen_files and config["harvest_once"]:
+                        logger.write('        Product already exists, skipping...')
+                        continue
+                    
                     # check for existing exNode
                     # add checksumming or something here
                     if config['lodn_stat']:
@@ -1117,8 +1155,12 @@ def main():
                         logger.write('       Skipping LoDN import...')
 
                     if config['unis_import'] and do_import:
-                        logger.write('       Importing ' + file_name + ' to UNIS')
-                        process.unis_import(file_name, xnd_path, base_name)
+                        try:
+                            logger.write('       Importing ' + file_name + ' to UNIS')
+                            process.unis_import(file_name, xnd_path, base_name)
+                            history[run_date].append({"name": file_name})
+                        except Exception as exp:
+                            logger.write_error("  Failed to commit exnode: {0}".format(exp))
                     else:
                         logger.write('       Skipping UNIS import...')
 
@@ -1171,8 +1213,10 @@ def main():
             files_processed = files_processed + 1
             entities_processed = entities_processed + 1
             #logger.write('finished entity ' + str(entities_processes) + ' of ' + search.get_attribs('totalHits'))
-            if entities_processed >= search.get_attribs('totalHits'):
+            
+            if entities_processed >= search.get_attribs('totalHits') or entities_processed >= max_entities:
                 run = False
+                break
 
                 # end while run
 
@@ -1192,6 +1236,9 @@ def main():
                 f2.write('start' + ' ' + str(search.get_attribs('end_date')) + '\n')
             else:
                 f2.write(line)
+
+    with open(config["history"], 'w') as history_file:
+        history_file.write(json.dumps(history, sort_keys=True, indent=2, separators=(',', ': ')))
 
     # logout before closing
     results = client.service.logout(apiKey=apikey)
