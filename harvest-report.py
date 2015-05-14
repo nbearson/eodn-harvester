@@ -15,10 +15,14 @@ def get_exnode(name):
                                                         port = config["unis_port"],
                                                         collection = "exnodes",
                                                         options = "name=" + name)
+    try:
     request = urllib2.Request(url)
     request.add_header("Accept", "application/perfsonar+json")
     
     response = json.loads(urllib2.urlopen(request, timeout = 20).read())[0]
+    except Exception as e:
+        print "Failed to retrieve exnode - {0}".format(e)
+        return None
     return response
 
 
@@ -53,6 +57,9 @@ emails an admin a summary""".format(prog = sys.argv[0])
     print report
     for exnode in records:
         exnode_data = get_exnode(exnode)
+        if not exnode_data:
+            continue
+        
         harvested_size += exnode_data["size"]
         report = "<tr><td>{name}</td><td>{size}</td></tr>".format(name =  exnode_data["name"],
                                                                   size =  exnode_data["size"] / (2**20))
