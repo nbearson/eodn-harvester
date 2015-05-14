@@ -21,14 +21,6 @@ def get_exnode(name):
     response = json.loads(urllib2.urlopen(request, timeout = 20).read())[0]
     return response
 
-def get_exnode_report(name):
-    exnode = get_exnode(name)
-    report = "    {name} - {size} MB".format(name = exnode["name"],
-                                             size = exnode["size"] / (2**20))
-    print report
-    return { "size": exnode['size'], "report": report }
-
-
 
 def main():
     harvested_size = 0
@@ -41,7 +33,8 @@ emails an admin a summary""".format(prog = sys.argv[0])
     args = parser.parse_args()
 
     now = datetime.datetime.utcnow()
-    report = "The following files were harvested from {0} to {1}:\n\n".format(now.strftime("%m-%d-%Y %H:%M:00"), (now - datetime.timedelta(hours = args.duration)).strftime("%m-%d-%Y %H:%M:00"))
+    report = "The following files were harvested from {0} to {1}:<br><br><table>".format(now.strftime("%m-%d-%Y %H:%M:00"), (now - datetime.timedelta(hours = args.duration)).strftime("%m-%d-%Y %H:%M:00"))
+    report += "<tr><th>Filename</th><th>Size (MB)</th></tr>"
     records = []
 
     with open(config['history']) as f:
@@ -59,13 +52,14 @@ emails an admin a summary""".format(prog = sys.argv[0])
     
     print report
     for exnode in records:
-        exnode_data = get_exnode_report(exnode)
+        exnode_data = get_exnode(exnode)
         harvested_size += exnode_data["size"]
-        report = report + exnode_data["report"] + "\n"
+        report = "<tr><td>{name}</td><td>{size}</td></tr>".format(name =  exnode_data["name"],
+                                                                  size =  exnode_data["size"] / (2**20))
 
     report = report + "\n  Total size: {size} MB".format(size = harvested_size / (2**20))
 
-    msg = MIMEText(report)
+    msg = MIMEText(report, 'html')
     msg['Subject'] = "Daily Harvest Report"
     msg['From']    = mail_from
     msg['To']      = config["report-email"]
