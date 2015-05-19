@@ -70,83 +70,9 @@ if __debug__:
 else:
     logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
-if os.path.isfile(config["history"]):
-    with open(config["history"], 'r') as f:
-        history = json.loads(f.read())
-else:
-    history = {}
-
-run_date = datetime.datetime.utcnow().strftime("%m-%d-%Y %H:%M:00")
-history[run_date] = []
-seen_files = {}
-to_remove = []
-
-for key, run in history.iteritems():
-    record_time = datetime.datetime.strptime(key, "%m-%d-%Y %H:%M:%S")
-    if datetime.datetime.utcnow() - record_time > timedelta(**config["record_limit"]):
-        to_remove.append(key)
-    for exnode in run:
-        seen_files[exnode["name"]] = True
-
-for key in to_remove:
-    history.remove(key)
-
-# read config file
-#config = {}
-#with open('./harvest.cfg') as f:
-#    for line in f:
-#        li = line.strip()
-#        if not ((li.startswith('#')) or (li == '')):
-#            key = li.split(' ')[0]
-#            value = li.split(' ')[1]
-#            if key == 'start' and value != 'None':
-#                value = value + ' ' + li.split(' ')[2]
-#            if value == 'True':
-#                config[key] = True
-#            elif value == 'False':
-#                config[key] = False
-#            elif value == 'None':
-#                config[key] = None
-#            else:
-#                config[key] = value
-
 retry = int(config['retry'])
 downloads = 0
 download_speeds = 0
-DEPOTS = (
-   #('depot1.loc1.sfasu.reddnet.org',6714),
-   ('depot1.loc1.ufl.reddnet.org',6714),
-   ('depot1.loc1.utk.reddnet.org',6714),
-   ('depot10.loc1.utk.reddnet.org',6714),
-   ('depot2.loc1.utk.reddnet.org',6714),
-   #('depot3.loc1.sfasu.reddnet.org',6714),
-   #('depot3.loc1.ufl.reddnet.org',6714),
-   #('depot3.loc1.utk.reddnet.org',6714),
-   #('depot4.loc1.sfasu.reddnet.org',6714),
-   #('depot4.loc1.utk.reddnet.org',6714),
-   #('depot5.loc1.sfasu.reddnet.org',6714),
-   ('depot5.loc1.ufl.reddnet.org',6714),
-   #('depot5.loc1.utk.reddnet.org',6714),
-   #('depot6.loc1.sfasu.reddnet.org',6714),
-   ('depot6.loc1.ufl.reddnet.org',6714),
-   #('depot7.loc1.sfasu.reddnet.org',6714),
-   ('depot7.loc1.utk.reddnet.org',6714),
-   ('depot8.loc1.utk.reddnet.org',6714),
-   #('depot9.loc1.utk.reddnet.org',6714),
-   ('dresci.incntre.iu.edu',6714))  #,
-   #('reddnet-depot1.reddnet.org',6714),
-   #('reddnet-depot10.reddnet.org',6714),
-   #('reddnet-depot2.reddnet.org',6714),
-   #('reddnet-depot3.reddnet.org',6714),
-   #('reddnet-depot4.reddnet.org',6714),
-   #('reddnet-depot5.reddnet.org',6714),
-   #('reddnet-depot6.reddnet.org',6714),
-   #('reddnet-depot7.reddnet.org',6714),
-   #('reddnet-depot8.reddnet.org',6714),
-   #('reddnet-depot9.reddnet.org',6714),
-   #('tvdlnet1.sfasu.edu',6714)),
-   #('tvdlnet2.sfasu.edu',6714),
-   #('tvdlnet3.sfasu.edu',6714))
 
 parser = argparse.ArgumentParser(description='Retrieve data from EROS and upload to EODN')
 parser.add_argument('-a', action='store_true', dest='avmss', default=False, help='AVMSS only')
@@ -269,13 +195,10 @@ class Product(object):
     def __init__(self, **kwargs):
         self.attribs = kwargs
         self.attribs['available'] = False
-        #self.attribs['download_code'] = None
-        #self.attribs['productName'] = None
-        #self.attribs['file_size'] = None
-
+    
     def set_attribs(self, k, v):
         self.attribs[k] = v
-
+    
     def get_attribs(self, k):
         return self.attribs.get(k, None)
 
@@ -321,9 +244,9 @@ class Search(object):
             self.attribs['end_date'] = datetime.datetime.now()  # ending date - default now
         # convert start date to datetime format or caculate as offset from Now.
         if config['start'] is None and config['end']:
-            self.attribs['start_date'] = self.attribs['end_date'] - timedelta(**config["harvest-window"])
+            self.attribs['start_date'] = self.attribs['end_date'] - timedelta(**config["harvest_window"])
         elif config['start'] is None and config['end'] is None:
-            self.attribs['start_date'] = datetime.datetime.utcnow() - timedelta(**config["harvest-window"])
+            self.attribs['start_date'] = datetime.datetime.utcnow() - timedelta(**config["harvest_window"])
         else:
             self.attribs['start_date'] = datetime.datetime.strptime(config['start'], '%Y-%m-%d %H:%M:%S.%f')
         self.attribs['sort'] = config['sort']  # Sort order ['ASC', 'DESC'] - default 'ASC'
@@ -767,16 +690,6 @@ class Process(object):
 
         return results
 
-    #def upload_to_eodn(self, xnd_file, file):
-    #    # make a new xndrc file with a random depot
-    #    generate_random_xndrc()
-    #    #lors_upload --duration=10h --copies=1 -X /home/prb/.xndrc.$((${RANDOM} % 7)) --depot-list -f $f
-    #    results = call(['lors_upload', '--duration=10h', '--copies=1', '--xndrc=test-xndrc', '--depot-list', '-o', xnd_file, file])
-    #    if results != 0:
-    #        exit(1)
-    #    else:
-    #        return 0
-
     def lodn_stat(self, xnd_path):
         if config['lodn_import']:
             lodn_stat_result = call(['lodn_stat', xnd_path])
@@ -854,30 +767,6 @@ def read_bad_file_list(client, bad_file_list):
             entities.item.append(file.strip())
     return entities
 
-def generate_random_xndrc():
-
-    xndrc_base=re.sub('[ ]+', ' ',
-               '''LBONE_SERVER     dlt.incntre.iu.edu 6767
-                  LBONE_SERVER     cup.eecs.utk.edu 6767
-                  LOCATION         zip= 37938
-                  DURATION 1d
-                  STORAGE_TYPE     HARD
-                  VERBOSE          1
-                  MAX_INTERNAL_BUFFER  64M
-                  DEMO 0
-                  DATA_BLOCKSIZE 5M
-                  E2E_BLOCKSIZE  512K
-                  E2E_ORDER      none
-                  COPIES         3
-                  TIMEOUT     2600
-                  THREADS  8
-                  MAXDEPOTS 6''')
-
-    with open('test-xndrc', 'w') as f:
-        f.write(xndrc_base)
-        depot, port = random.choice(DEPOTS)
-        print(depot)
-        f.write('\nDEPOT {} {}\n'.format(depot, port))
 
 
 def fix_wsdl(wsdlurl):  # fix errors in USGS WSDL
@@ -912,27 +801,21 @@ def fix_wsdl(wsdlurl):  # fix errors in USGS WSDL
 
 def main():
     #instantiate global logger
-
+    
     global logger
     logger = Logger()
     list_config()
-
+    
     # fix bad wsdl file from USGS
     url = '''file://''' + fix_wsdl(wsdlurl=config['usgs_url'])  # Fix the wsdl URL
     current_record = 1
     # instantiate SOAP client
-
+    
     try:
         client = Client(url)
-
     except:
         logger.write_error('Error instantiating SOAP client: ', sys.exc_into())
-
-    if config['limit_entities'] is None:
-        max_entities = 200
-    else:
-        max_entities = config['limit_entities']
-
+        
     # login - return apiKey
     if config['usgs_login'] is None:
         uname = input('Enter USGS Login: ')
@@ -953,11 +836,11 @@ def main():
 
     # instantiate a new instance of the helper class
     process = ProcessL8()
-
+    
     # search for scenes and load scene[] with Scene objects:
     # instantiate a new Landsat_8 search object
     search = SearchL8()
-
+    
     #  set attributes here that need to be changed
     search.set_attribs('client_obj', client)
     search.set_attribs('apikey', apikey)
@@ -965,280 +848,288 @@ def main():
                                                                   long=config['ll'].split(',')[0]))
     search.set_attribs('ur', process.get_service_class_coordinate(client=client, lat=config['ur'].split(',')[1],
                                                                   long=config['ur'].split(',')[0]))
-
-    # set to start with record 0 on first pass
-    search.set_attribs('nextRecord', 0)
-
-    #search.set_attribs('criteria',['Cloud Cover = 4'])
-    criteria = process.get_service_inventory_criteriafield(client=client, field='Cloud Cover', value=config['cloud'])
-
+    
     entities_processed = 0
     files_processed = 0
     run = True
-    while run is True:
-        if config['bad_files']:
-            entities = read_bad_file_list(client=client, bad_file_list=config['bad_file_list'])
-            search.set_attribs('entities', entities)
-            search.set_attribs('totalHits', len(entities.item))
-            #print(search.get_attribs('entities'))
-            #print(search.get_attribs('totalHits'))
+    while not config['limit_entities'] or config['limit_entities'] > entities_processed:
+        search.set_attribs('nextRecord', 0)
+        new_start = datetime.datetime.utcnow()
+        search.set_attribs('end_date', new_start)
+        criteria = process.get_service_inventory_criteriafield(client=client, field='Cloud Cover', value=config['cloud'])
+        
+        if os.path.isfile(config["history"]):
+            with open(config["history"], 'r') as f:
+                history = json.loads(f.read())
         else:
-            search.set_attribs('startingNumber', search.get_attribs('nextRecord'))
-            for i in range(retry):  # retry 10 times then give up
-                try:
-                    response = search.do_search()
-                except Exception as e:  # right now we are retrying on any error
-                    # try logging in again
-                    apikey = None
-                    logger.write_error('Search_failed: ' + str(e))
-                    apikey = client.service.login(uname, pword)
-                    if apikey == None:
-                        continue
-                    logger.write_error('Success: apiKey = ' + str(apikey))
-                break
+            history = {}
 
-        logger.write('Found ' + str(len(search.get_attribs('entities').item)) + ' scenes:' + (' [Max ' + str(max_entities) + ']' if config['limit_entities'] else ''))
-        if config['bad_files']:
-            logger.write('Processing bad file list')
-        else:
-            logger.write('Processing ' + str(search.get_attribs('firstRecord')) + ' - ' +
-                        str(search.get_attribs('lastRecord')) + ' of ' + str(search.get_attribs('totalHits')) + ' matches')
-        # if config['bad_files']:
-        #
-        # else:
-        #     # get the list of available products (download_codes) for the selected scenes
-        #     one_entity = client.factory.create('ArrayOfString')
-        #     one_entity.item.append(search.get_attribs('entities').item[0])
-        #     product_codes = process.get_product_codes(client=client, apikey=apikey, entity_ids=one_entity)
-        #     #product    _codes = process.get_product_codes(client=client, apikey=apikey,
-                                                  #entity_ids=search.get_attribs('entities'))
+        run_date = datetime.datetime.utcnow().strftime("%m-%d-%Y %H:%M:00")
+        history[run_date] = []
+        seen_files = {}
+        to_remove = []
 
-        logger.write('number found: ' + str(len(search.get_attribs('entities').item)))
-        # cycle through the scenes\
-        for entity in search.get_attribs('entities').item:
-            logger.write('**Processing ' + entity + ' ...[' + str(current_record) + '/' + str(search.get_attribs('totalHits')) + ']')
-            current_record += 1
+        for key, ls in history.iteritems():
+            record_time = datetime.datetime.strptime(key, "%m-%d-%Y %H:%M:%S")
+            if datetime.datetime.utcnow() - record_time > timedelta(**config["record_limit"]):
+                to_remove.append(key)
+            for exnode in ls:
+                seen_files[exnode["name"]] = True
 
+        for key in to_remove:
+            history.remove(key)
+
+        
+        while run:
             if config['bad_files']:
-                product_code = process.split_filename(entity=entity,part='product_code')
-                #print('line 869 - product_code: '+product_code)
-                entity = process.split_filename(entity=entity,part='entity_id')
-                #print('line 872 - entity: '+entity)
-                #print('entity: ', entity)
-                #print('product_code: ', product_code)
+                entities = read_bad_file_list(client=client, bad_file_list=config['bad_file_list'])
+                search.set_attribs('entities', entities)
+                search.set_attribs('totalHits', len(entities.item))
             else:
-                product_code = 'all'
+                search.set_attribs('startingNumber', search.get_attribs('nextRecord'))
+                no_records = False
+                for i in range(retry):  # retry 10 times then give up
+                    try:
+                        response = search.do_search()
+                        if len(search.get_attribs('entities').item) == 0:
+                            logger.write("No records found, sleeping for {window} minutes".format(window = config['harvest_window']["minutes"]))
+                            no_records = True
+                    except Exception as e:  # right now we are retrying on any error
+                        # try logging in again
+                        apikey = None
+                        logger.write_error('Search_failed: ' + str(e))
+                        apikey = client.service.login(uname, pword)
+                        if apikey == None:
+                            continue
+                            logger.write_error('Success: apiKey = ' + str(apikey))
+                    break
 
-            # need a single entity in an ArrayOfString to retrieve download Options
-            entity_ids = client.factory.create('ArrayOfString')  # the SOAP server requires an ArrayOfString
-            #entity_ids.__setitem__('item', entity)
-            entity_ids.item.append(entity)
+                if no_records:
+                    break # Wait for new record set
 
-            logger.write('  Retrieving download options for ' + entity + ' ...')
-            products = process.get_download_options(client=client, apikey=apikey, uname=uname, pword=pword,
+            logger.write("Found {entities} scenes: [Max {count}]".format(entities = len(search.get_attribs('entities').item), 
+                                                                         count    = config['limit_entities'] if config['limit_entities'] else 'Unlimited'))
+            if config['bad_files']:
+                logger.write('Processing bad file list')
+            else:
+                logger.write("Processing {start} - {end} of {total} matches".format(start = str(search.get_attribs('firstRecord')),
+                                                                                end   = search.get_attribs('lastRecord'),
+                                                                                total = search.get_attribs('totalHits')))
+            # cycle through the scenes\
+            for entity in search.get_attribs('entities').item:
+                logger.write('**Processing ' + entity + ' ...[' + str(current_record) + '/' + str(search.get_attribs('totalHits')) + ']')
+                current_record += 1
+                
+                if config['bad_files']:
+                    product_code = process.split_filename(entity=entity,part='product_code')
+                    entity = process.split_filename(entity=entity,part='entity_id')
+                else:
+                    product_code = 'all'
+                
+                # need a single entity in an ArrayOfString to retrieve download Options
+                entity_ids = client.factory.create('ArrayOfString')  # the SOAP server requires an ArrayOfString
+                entity_ids.item.append(entity)
+
+                logger.write('  Retrieving download options for ' + entity + ' ...')
+                products = process.get_download_options(client=client, apikey=apikey, uname=uname, pword=pword,
                                                     entity_ids=entity_ids, product_code=product_code)
+                
+                logger.write('  Found ' + str(len(products)) + ' products')
 
-            logger.write('  Found ' + str(len(products)) + ' products')
-
-            for product in products:
-                do_import = True
-                # Make sure this product is available
-                if args.avmss and product.get_attribs('download_code') != 'FR_BUND':
-                    # skip everything but landsatLook bundles
-                    logger.write('   skipping ' + product.get_attribs('download_code'))
-                    continue
-
-                logger.write('   -Product: ' + product.get_attribs('productName'))
-                logger.write('       Product Code: ' + product.get_attribs('download_code'))
-                if product.get_attribs('available'):
-                    # even though we are sending only one product_id, the SOAP server requires an ArrayOfString
-                    product_ids = client.factory.create('ArrayOfString')
-                    product_ids.item.append(product.get_attribs('download_code'))
-
-                    logger.write('       Retrieving URL for ' + entity + ' product: ' + product.get_attribs(
-                        'download_code') + '...')
-                    url = process.get_url(client=client, apikey=apikey, entity_ids=entity_ids, product_ids=product_ids,
-                                          uname=uname, pword=pword)
-                    if url is None:
-                        logger.write_error('Failed to retrieve URL for ' + entity)
-                        continue  # continue with the next entity
-                    logger.write('       URL: ' + url)
-
-                    # generate the various file paths
-                    base_name = process.get_base_name(url=url)
-                    file_name = process.get_file_name(base_name=base_name,
-                                                      download_code=product.get_attribs('download_code'))
-                    lodn_path = process.get_lodn_path(file_name)
-                    file_path = config['workspace'] + file_name
-                    xnd_path = file_path + '.xnd'
-                    logger.write('       base_name: ' + base_name)
-                    logger.write('       file_name: ' + file_name)
-                    logger.write('       file_path: ' + file_path)
-                    logger.write('       lodn_path: ' + lodn_path)
-                    logger.write('       xnd_path: ' + xnd_path)
-
-                    if file_name in seen_files and config["harvest_once"]:
-                        logger.write('        Product already exists, skipping...')
+                for product in products:
+                    do_import = True
+                    # Make sure this product is available
+                    if args.avmss and product.get_attribs('download_code') != 'FR_BUND':
+                        # skip everything but landsatLook bundles
+                        logger.write('   skipping ' + product.get_attribs('download_code'))
                         continue
-                    
-                    # check for existing exNode
-                    # add checksumming or something here
-                    if config['lodn_stat']:
-                        skip = False
-                        logger.write('       Looking for existing exnode for: ' + lodn_path)
-                        if process.lodn_stat(lodn_path):
-                            logger.write('       exNode exists, skipping file ...')
-                            skip = True
-                            continue  # skip the rest of this loop
-                        else:
-                            logger.write('       exNode not found - continue with download ...')
 
-                    if config['file_download']:
-                        # look for existing file on local storage
-                        result = 0
-                        if config['file_stat']:
-                            logger.write('       Looking for ' + file_path)
-                            if process.file_stat(file_path=file_path, file_size=product.get_attribs('file_size')):
-                                logger.write('       ' + file_path + ' exists - skipping download')
+                    logger.write('   -Product: ' + product.get_attribs('productName'))
+                    logger.write('       Product Code: ' + product.get_attribs('download_code'))
+                    if product.get_attribs('available'):
+                        # even though we are sending only one product_id, the SOAP server requires an ArrayOfString
+                        product_ids = client.factory.create('ArrayOfString')
+                        product_ids.item.append(product.get_attribs('download_code'))
+                        
+                        logger.write('       Retrieving URL for ' + entity + ' product: ' + product.get_attribs(
+                            'download_code') + '...')
+                        url = process.get_url(client=client, apikey=apikey, entity_ids=entity_ids, product_ids=product_ids,
+                                              uname=uname, pword=pword)
+                        if url is None:
+                            logger.write_error('Failed to retrieve URL for ' + entity)
+                            continue  # continue with the next entity
+                        logger.write('       URL: ' + url)
+
+                        # generate the various file paths
+                        base_name = process.get_base_name(url=url)
+                        file_name = process.get_file_name(base_name=base_name,
+                                                          download_code=product.get_attribs('download_code'))
+                        lodn_path = process.get_lodn_path(file_name)
+                        file_path = config['workspace'] + file_name
+                        xnd_path = file_path + '.xnd'
+                        logger.write('       base_name: ' + base_name)
+                        logger.write('       file_name: ' + file_name)
+                        logger.write('       file_path: ' + file_path)
+                        logger.write('       lodn_path: ' + lodn_path)
+                        logger.write('       xnd_path: ' + xnd_path)
+
+                        if file_name in seen_files and config["harvest_once"]:
+                            logger.write('        Product already exists, skipping...')
+                            continue
+                        
+                        # check for existing exNode
+                        # add checksumming or something here
+                        if config['lodn_stat']:
+                            skip = False
+                            logger.write('       Looking for existing exnode for: ' + lodn_path)
+                            if process.lodn_stat(lodn_path):
+                                logger.write('       exNode exists, skipping file ...')
+                                skip = True
+                                continue  # skip the rest of this loop
                             else:
-                                logger.write('       Not found - Downloading...')
+                                logger.write('       exNode not found - continue with download ...')
+
+                        if config['file_download']:
+                            # look for existing file on local storage
+                            result = 0
+                            if config['file_stat']:
+                                logger.write('       Looking for ' + file_path)
+                                if process.file_stat(file_path=file_path, file_size=product.get_attribs('file_size')):
+                                    logger.write('       ' + file_path + ' exists - skipping download')
+                                else:
+                                    logger.write('       Not found - Downloading...')
+                                    result = process.download(url=url, file_path=file_path,
+                                                              usgs_filesize=product.get_attribs('file_size'))
+                            else:
+                                logger.write('       Force downloading ' + url)
                                 result = process.download(url=url, file_path=file_path,
                                                           usgs_filesize=product.get_attribs('file_size'))
-                                # if result != 0:
-                                #     logger.write('******* Download Failed *******')
-                                #     logger.write_error(file_path+' '+str(result))
-                                #     continue  # go on to the next file
-                        else:
-                            logger.write('       Force downloading ' + url)
-                            result = process.download(url=url, file_path=file_path,
-                                                      usgs_filesize=product.get_attribs('file_size'))
-                        if result != 0:
-                            if url is None:
-                                url = 'None'
-                            if result is None:
-                                result = 'None'
-                            logger.write_error('Line 797: ******* Download Failed *******')
-                            logger.write_error('URL: ' + url)
-                            logger.write_error('Error: ' + result)
-                            continue  # go on to the next file
-                        files_processed = files_processed + 1
-
-                    else:
-                        logger.write('       Skipping download...')
-
-                    print("finished download")
-
-                    if config['lors_upload']:
-                        # Upload the file using LoRS_upload - returns 0 if successful
-                        logger.write('       Uploading ' + file_path + ' to EODN')
-                        result = process.upload_to_eodn(xnd_file=xnd_path, file=file_path)
-                        if result != 0:
-                            do_import = False
-                            logger.write_error('line 838: lors_upload failed for ' + base_name)
-                            logger.write_error('result')
-                    else:
-                        logger.write('       Skipping LoRS upload...')
-
-                    # Import the exNode to LoDN
-                    if config['lodn_import'] and do_import:
-                        logger.write('       Building LoDN directory structure')
-                        process.build_lodn_dir(product_id=base_name)
-                        logger.write('       Success - built ' + lodn_path)
-                        logger.write('       Importing ' + xnd_path + ' to LoDN')
-                        result = process.import_exnode(xnd_path=xnd_path, lodn_path=lodn_path)
-                        logger.write('       import_exnode results: ' + str(result))
-                        if result != 0:
-                            logger.write_error('Line 849: lodn_import failed for ' + base_name)
-                            logger.write_error('Lodn_path = ' + lodn_path)
-                            logger.write_error('result')
-                    else:
-                        logger.write('       Skipping LoDN import...')
-
-                    if config['unis_import'] and do_import:
-                        try:
-                            logger.write('       Importing ' + file_name + ' to UNIS')
-                            process.unis_import(file_name, xnd_path, base_name)
-                            history[run_date].append({"name": file_name})
-                        except Exception as exp:
-                            logger.write_error("  Failed to commit exnode: {0}".format(exp))
-                    else:
-                        logger.write('       Skipping UNIS import...')
-
-                    # add scene to GloVis instance
-                    if product.get_attribs('download_code') == 'STANDARD':
-                        if config['glovis']:
-                            logger.write('       Sending scene to GloVIS...')
-                            result = process.add_to_glovis(product_id=base_name)
                             if result != 0:
-                                logger.write_error('Line 857: GloVis copy failed for ' + base_name)
+                                if url is None:
+                                    url = 'None'
+                                if result is None:
+                                    result = 'None'
+                                logger.write_error('Line 797: ******* Download Failed *******')
+                                logger.write_error('URL: ' + url)
+                                logger.write_error('Error: ' + result)
+                                continue  # go on to the next file
+                            files_processed = files_processed + 1
+                            
+                        else:
+                            logger.write('       Skipping download...')
+
+                        print("finished download")
+
+                        if config['lors_upload']:
+                            # Upload the file using LoRS_upload - returns 0 if successful
+                            logger.write('       Uploading ' + file_path + ' to EODN')
+                            result = process.upload_to_eodn(xnd_file=xnd_path, file=file_path)
+                            if result != 0:
+                                do_import = False
+                                logger.write_error('line 838: lors_upload failed for ' + base_name)
                                 logger.write_error('result')
                         else:
-                            logger.write('       Skipping sending scene to GloVis...')
+                            logger.write('       Skipping LoRS upload...')
 
-                    # add scene to AVMSS instance
-                    if product.get_attribs('download_code') == 'FR_BUND':
-                        if config['avmss']:
-                            logger.write('       Sending files to AVMSS...')
-                            result = process.add_to_avmss(file_path=file_path, file_name=file_name)
+                        # Import the exNode to LoDN
+                        if config['lodn_import'] and do_import:
+                            logger.write('       Building LoDN directory structure')
+                            process.build_lodn_dir(product_id=base_name)
+                            logger.write('       Success - built ' + lodn_path)
+                            logger.write('       Importing ' + xnd_path + ' to LoDN')
+                            result = process.import_exnode(xnd_path=xnd_path, lodn_path=lodn_path)
+                            logger.write('       import_exnode results: ' + str(result))
                             if result != 0:
-                                logger.write('Line 865: avmss copy failed for ' + base_name)
+                                logger.write_error('Line 849: lodn_import failed for ' + base_name)
+                                logger.write_error('Lodn_path = ' + lodn_path)
                                 logger.write_error('result')
                         else:
-                            logger.write('       Skipping sending files to AVMSS...')
+                            logger.write('       Skipping LoDN import...')
 
-                    # Remove working files
-                    logger.write('       Cleaning up...')
-                    if config['file_delete']:
-                        try:
-                            if os.path.isfile(file_path):
-                                call(['rm', file_path])
-                            if os.path.isfile(file_path):
-                                call(['rm', xnd_path])
-                        except Exception as e:
-                            logger.write_error('Line 848: Clean up failed.')
-                            logger.write_error(e)
+                        if config['unis_import'] and do_import:
+                            try:
+                                logger.write('       Importing ' + file_name + ' to UNIS')
+                                process.unis_import(file_name, xnd_path, base_name)
+                                history[run_date].append({"name": file_name})
+                            except Exception as exp:
+                                logger.write_error("  Failed to commit exnode: {0}".format(exp))
+                        else:
+                            logger.write('       Skipping UNIS import...')
 
-                else:
-                    logger.write('       ' + product.get_attribs('productName') + ' unavailable for ' + entity)
+                        # add scene to GloVis instance
+                        if product.get_attribs('download_code') == 'STANDARD':
+                            if config['glovis']:
+                                logger.write('       Sending scene to GloVIS...')
+                                result = process.add_to_glovis(product_id=base_name)
+                                if result != 0:
+                                    logger.write_error('Line 857: GloVis copy failed for ' + base_name)
+                                    logger.write_error('result')
+                            else:
+                                logger.write('       Skipping sending scene to GloVis...')
 
-                logger.write('       Product complete.')
-                # if skip == False:
-                time.sleep(float(config['pause']))  # this probably isn't needed because of download delays
-                # end if product available
+                        # add scene to AVMSS instance
+                        if product.get_attribs('download_code') == 'FR_BUND':
+                            if config['avmss']:
+                                logger.write('       Sending files to AVMSS...')
+                                result = process.add_to_avmss(file_path=file_path, file_name=file_name)
+                                if result != 0:
+                                    logger.write('Line 865: avmss copy failed for ' + base_name)
+                                    logger.write_error('result')
+                            else:
+                                logger.write('       Skipping sending files to AVMSS...')
+                        
+                        # Remove working files
+                        logger.write('       Cleaning up...')
+                        if config['file_delete']:
+                            try:
+                                if os.path.isfile(file_path):
+                                    call(['rm', file_path])
+                                if os.path.isfile(file_path):
+                                    call(['rm', xnd_path])
+                            except Exception as e:
+                                logger.write_error('Line 848: Clean up failed.')
+                                logger.write_error(e)
 
-            # end for product in products
+                    else:
+                        logger.write('       ' + product.get_attribs('productName') + ' unavailable for ' + entity)
+                        
+                    logger.write('       Product complete.')
+                    # if skip == False:
+                    time.sleep(float(config['pause']))  # this probably isn't needed because of download delays
+                    # end if product available
+                        
+                # end for product in products
 
-            # end for entity in entities
-            logger.write('    Finished with ' + entity)
-            files_processed = files_processed + 1
-            entities_processed = entities_processed + 1
-            #logger.write('finished entity ' + str(entities_processes) + ' of ' + search.get_attribs('totalHits'))
-            
-            if entities_processed >= search.get_attribs('totalHits') or entities_processed >= max_entities:
-                run = False
-                break
-
+                # end for entity in entities
+                logger.write('    Finished with ' + entity)
+                files_processed = files_processed + 1
+                entities_processed = entities_processed + 1
+                #logger.write('finished entity ' + str(entities_processes) + ' of ' + search.get_attribs('totalHits'))
+                
+                if entities_processed >= search.get_attribs('totalHits') or config['limit_entities'] > entities_processed:
+                    run = False
+                    break
+                
                 # end while run
+        
 
+        with open(config["history"], 'w') as history_file:
+            history_file.write(json.dumps(history, sort_keys=True, indent=2, separators=(',', ': ')))
+
+        search.set_attribs('start_date', new_start)
+        delay_time = datetime.datetime.utcnow() - new_start
+        if delay_time < timedelta(**config['harvest_window']):
+            remaining_time = (timedelta(**config['harvest_window']) - delay_time)
+            remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
+            logger.write("    Sleeping for {s} seconds...".format(s = remaining_seconds))
+            time.sleep(remaining_seconds)
+        
+    
     logger.write('')
     logger.write('*** Processed ' + (str(files_processed)) + ' scenes')
     if downloads != 0:
         logger.write('   ' + str(downloads) + ' files downloaded at an average of ' + str(
             download_speeds / downloads) + ' kb/sec')
-
-    # store the ending data as the starting date for next time around
-    with open('harvest.cfg') as f1:
-        lines = f1.readlines()
-
-    with open('harvest.cfg', 'w') as f2:
-        for line in lines:
-            if line.startswith('start'):
-                f2.write('start' + ' ' + str(search.get_attribs('end_date')) + '\n')
-            else:
-                f2.write(line)
-
-    with open(config["history"], 'w') as history_file:
-        history_file.write(json.dumps(history, sort_keys=True, indent=2, separators=(',', ': ')))
 
     # logout before closing
     results = client.service.logout(apiKey=apikey)

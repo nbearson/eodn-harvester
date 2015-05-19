@@ -72,7 +72,7 @@ config = {
 # harvest-window: the search window as a timedelta dictionary.  
 # Starting date is today (or end) - harvest-window.  Ending date is today
 
-    "harvest-window": { "minutes": 30 },
+    "harvest_window": { "minutes": 30 },
 
 # limit_entities:  the maximum number of entities to upload in a pass
     "limit_entities": None,
@@ -133,7 +133,7 @@ config = {
     "record_limit": { "days": 30 },
 
 # report-email:  The email used when reporting current statistics
-    "report-email": "jemusser@umail.iu.edu",
+    "report_email": "jemusser@umail.iu.edu",
 
 
 #**********************************************************
