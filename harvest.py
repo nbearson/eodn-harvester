@@ -63,6 +63,7 @@ from lxml import etree
 
 import settings
 from settings import config
+import reporter
 
 # logging.basicConfig(level=logging.INFO)
 if __debug__:
@@ -1121,6 +1122,8 @@ def main():
 
         with open(config["history"], 'w') as history_file:
             history_file.write(json.dumps(history, sort_keys=True, indent=2, separators=(',', ': ')))
+        
+        reporter.CreateReport(history)
         
         search.set_attribs('start_date', new_start)
         delay_time = datetime.datetime.utcnow() - new_start

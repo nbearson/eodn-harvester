@@ -133,7 +133,11 @@ config = {
     "record_limit": { "days": 30 },
 
 # report-email:  The email used when reporting current statistics
+#    "report_email": "dlt@crest.iu.edu",
     "report_email": "jemusser@umail.iu.edu",
+    
+# report_period:  The length of time between reports
+    "report_period": { "hours": 24 },
 
 
 #**********************************************************
