@@ -808,7 +808,6 @@ def main():
     
     # fix bad wsdl file from USGS
     url = '''file://''' + fix_wsdl(wsdlurl=config['usgs_url'])  # Fix the wsdl URL
-    current_record = 1
     # instantiate SOAP client
     
     try:
@@ -837,22 +836,25 @@ def main():
     # instantiate a new instance of the helper class
     process = ProcessL8()
     
-    # search for scenes and load scene[] with Scene objects:
-    # instantiate a new Landsat_8 search object
-    search = SearchL8()
     
-    #  set attributes here that need to be changed
-    search.set_attribs('client_obj', client)
-    search.set_attribs('apikey', apikey)
-    search.set_attribs('ll', process.get_service_class_coordinate(client=client, lat=config['ll'].split(',')[1],
-                                                                  long=config['ll'].split(',')[0]))
-    search.set_attribs('ur', process.get_service_class_coordinate(client=client, lat=config['ur'].split(',')[1],
-                                                                  long=config['ur'].split(',')[0]))
+    total_processed = 0
+    while not config['limit_entities'] or config['limit_entities'] > total_processed:
+        # search for scenes and load scene[] with Scene objects:
+        # instantiate a new Landsat_8 search object
+        search = SearchL8()
     
-    entities_processed = 0
-    files_processed = 0
-    run = True
-    while not config['limit_entities'] or config['limit_entities'] > entities_processed:
+        #  set attributes here that need to be changed
+        search.set_attribs('client_obj', client)
+        search.set_attribs('apikey', apikey)
+        search.set_attribs('ll', process.get_service_class_coordinate(client=client, lat=config['ll'].split(',')[1],
+                                                                      long=config['ll'].split(',')[0]))
+        search.set_attribs('ur', process.get_service_class_coordinate(client=client, lat=config['ur'].split(',')[1],
+                                                                      long=config['ur'].split(',')[0]))
+        run = True
+        
+        entities_processed = 0
+        files_processed = 0
+        
         search.set_attribs('nextRecord', 0)
         new_start = datetime.datetime.utcnow()
         search.set_attribs('end_date', new_start)
@@ -863,22 +865,21 @@ def main():
                 history = json.loads(f.read())
         else:
             history = {}
-
+            
         run_date = datetime.datetime.utcnow().strftime("%m-%d-%Y %H:%M:00")
-        history[run_date] = []
         seen_files = {}
         to_remove = []
-
+        
         for key, ls in history.iteritems():
             record_time = datetime.datetime.strptime(key, "%m-%d-%Y %H:%M:%S")
             if datetime.datetime.utcnow() - record_time > timedelta(**config["record_limit"]):
                 to_remove.append(key)
             for exnode in ls:
                 seen_files[exnode["name"]] = True
-
+                
         for key in to_remove:
             history.remove(key)
-
+            
         
         while run:
             if config['bad_files']:
@@ -915,10 +916,9 @@ def main():
                 logger.write("Processing {start} - {end} of {total} matches".format(start = str(search.get_attribs('firstRecord')),
                                                                                 end   = search.get_attribs('lastRecord'),
                                                                                 total = search.get_attribs('totalHits')))
-            # cycle through the scenes\
+            # cycle through the scenes
             for entity in search.get_attribs('entities').item:
-                logger.write('**Processing ' + entity + ' ...[' + str(current_record) + '/' + str(search.get_attribs('totalHits')) + ']')
-                current_record += 1
+                logger.write('**Processing ' + entity + ' ...[' + str(entities_processed + 1) + '/' + str(search.get_attribs('totalHits')) + ']')
                 
                 if config['bad_files']:
                     product_code = process.split_filename(entity=entity,part='product_code')
@@ -1050,9 +1050,16 @@ def main():
                             try:
                                 logger.write('       Importing ' + file_name + ' to UNIS')
                                 process.unis_import(file_name, xnd_path, base_name)
-                                history[run_date].append({"name": file_name})
                             except Exception as exp:
                                 logger.write_error("  Failed to commit exnode: {0}".format(exp))
+                                break
+
+                            try:
+                                history[run_date].append({"name": file_name})
+                            except KeyError as exp:
+                                history[run_date] = [{"name": file_name}]
+                            finally:
+                                seen_files[file_name] = True
                         else:
                             logger.write('       Skipping UNIS import...')
 
@@ -1097,25 +1104,24 @@ def main():
                     # if skip == False:
                     time.sleep(float(config['pause']))  # this probably isn't needed because of download delays
                     # end if product available
-                        
+                
                 # end for product in products
 
                 # end for entity in entities
                 logger.write('    Finished with ' + entity)
                 files_processed = files_processed + 1
-                entities_processed = entities_processed + 1
+                total_processed = entities_processed = entities_processed + 1
                 #logger.write('finished entity ' + str(entities_processes) + ' of ' + search.get_attribs('totalHits'))
                 
-                if entities_processed >= search.get_attribs('totalHits') or config['limit_entities'] > entities_processed:
+                if entities_processed >= search.get_attribs('totalHits') or config['limit_entities'] > total_processed:
                     run = False
                     break
                 
                 # end while run
-        
 
         with open(config["history"], 'w') as history_file:
             history_file.write(json.dumps(history, sort_keys=True, indent=2, separators=(',', ': ')))
-
+        
         search.set_attribs('start_date', new_start)
         delay_time = datetime.datetime.utcnow() - new_start
         if delay_time < timedelta(**config['harvest_window']):
