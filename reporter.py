@@ -18,6 +18,7 @@ def CreateReport(history):
     if datetime.datetime.utcnow() - last_reported >= datetime.timedelta(**config['report_period']):
         report = write_report(history)
         send_mail(report)
+        print report
         last_reported = datetime.datetime.utcnow()
 
 
@@ -34,7 +35,7 @@ def write_report(history):
         if record_time >= last_reported:
             for exnode in run:
                 harvested_size += exnode["size"]
-                report = "<tr><td>{name}</td><td>{size}</td></tr>".format(name =  exnode["name"],
+                report += "<tr><td>{name}</td><td>{size}</td></tr>".format(name =  exnode["name"],
                                                                           size =  exnode["size"] / (2**20))
 
 
