@@ -137,7 +137,7 @@ config = {
     "report_email": "jemusser@umail.iu.edu",
     
 # report_period:  The length of time between reports
-    "report_period": { "hours": 24 },
+    "report_period": { "minutes": 20 },
 
 
 #**********************************************************

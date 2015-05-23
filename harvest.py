@@ -889,21 +889,30 @@ def main():
                 search.set_attribs('totalHits', len(entities.item))
             else:
                 search.set_attribs('startingNumber', search.get_attribs('nextRecord'))
-                no_records = False
+                reconnect = False
                 for i in range(retry):  # retry 10 times then give up
+                    no_records = False
                     try:
                         response = search.do_search()
                         if len(search.get_attribs('entities').item) == 0:
                             logger.write("No records found, sleeping for {window} minutes".format(window = config['harvest_window']["minutes"]))
                             no_records = True
                     except Exception as e:  # right now we are retrying on any error
-                        # try logging in again
-                        apikey = None
-                        logger.write_error('Search_failed: ' + str(e))
-                        apikey = client.service.login(uname, pword)
-                        if apikey == None:
+                        reconnect = True
+                    
+                    if reconnect:
+                        try:
+                            # try logging in again
+                            apikey = None
+                            logger.write_error('Search_failed: ' + str(e))
+                            apikey = client.service.login(uname, pword)
+                            if apikey == None:
+                                continue
+                                logger.write_error('Success: apiKey = ' + str(apikey))
+                        except Exception as e:
+                            logger.write_error("Failed to login, retrying...")
+                            no_records = True
                             continue
-                            logger.write_error('Success: apiKey = ' + str(apikey))
                     break
 
                 if no_records:
@@ -1056,9 +1065,9 @@ def main():
                                 break
 
                             try:
-                                history[run_date].append({"name": file_name})
+                                history[run_date].append({"name": file_name, "size": product.get_attribs('file_size')})
                             except KeyError as exp:
-                                history[run_date] = [{"name": file_name}]
+                                history[run_date] = [{"name": file_name, "size": product.get_attribs('file_size')}]
                             finally:
                                 seen_files[file_name] = True
                         else:
