@@ -39,7 +39,7 @@ def write_report(history):
                                                                           size =  exnode["size"] / (2**20))
 
 
-    report = report + "\n  Total size: {size:.2f} MB".format(size = harvested_size / (2**20))
+    report = report + "<br>  Total size: {size:.2f} MB".format(size = harvested_size / (2**20))
 
     return report
 
