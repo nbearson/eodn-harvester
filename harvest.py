@@ -1,4 +1,4 @@
-#!/usr/bin/python
+bin/#!/usr/python
 # EODN_Harvest_0_1_18.py
 #
 # Harvest data from USGS EROS
@@ -667,7 +667,7 @@ class Process(object):
         else:
             logger.write_error('*** Download speed calculation failed.')
             #print('leaving download')
-        return 0  # don't fail on speed calculation failure!
+        return file_size  # don't fail on speed calculation failure!
 
     def upload_to_eodn(self, xnd_file, file):
         #lors_upload --duration=10h --copies=1 -X /home/prb/.xndrc.$((${RANDOM} % 7)) --depot-list -f $f response = '0'
@@ -1008,13 +1008,13 @@ def main():
                                     logger.write('       ' + file_path + ' exists - skipping download')
                                 else:
                                     logger.write('       Not found - Downloading...')
-                                    result = process.download(url=url, file_path=file_path,
+                                    file_size = process.download(url=url, file_path=file_path,
                                                               usgs_filesize=product.get_attribs('file_size'))
                             else:
                                 logger.write('       Force downloading ' + url)
-                                result = process.download(url=url, file_path=file_path,
+                                file_size = process.download(url=url, file_path=file_path,
                                                           usgs_filesize=product.get_attribs('file_size'))
-                            if result != 0:
+                            if file_size < 0:
                                 if url is None:
                                     url = 'None'
                                 if result is None:
@@ -1065,9 +1065,9 @@ def main():
                                 break
 
                             try:
-                                history[run_date].append({"name": file_name, "size": product.get_attribs('file_size')})
+                                history[run_date].append({"name": file_name, "size": file_size})
                             except KeyError as exp:
-                                history[run_date] = [{"name": file_name, "size": product.get_attribs('file_size')}]
+                                history[run_date] = [{"name": file_name, "size": file_size}]
                             finally:
                                 seen_files[file_name] = True
                         else:

@@ -26,7 +26,7 @@ def write_report(history):
     global last_reported
     now = datetime.datetime.utcnow()
     harvested_size = 0
-    report = "The following files were harvested from {0} to {1}:<br><br><table>".format(now.strftime("%m-%d-%Y %H:%M:00"), last_reported.strftime("%m-%d-%Y %H:%M:00"))
+    report = "The following files were harvested from {0} to {1}:<br><br><table>".format(last_reported.strftime("%m-%d-%Y %H:%M:00"), now.strftime("%m-%d-%Y %H:%M:00"))
     report += "<tr><th>Filename</th><th>Size (MB)</th></tr>"
 
     for key, run in history.iteritems():
@@ -35,11 +35,11 @@ def write_report(history):
         if record_time >= last_reported:
             for exnode in run:
                 harvested_size += exnode["size"]
-                report += "<tr><td>{name}</td><td>{size}</td></tr>".format(name =  exnode["name"],
+                report += "<tr><td>{name}</td><td>{size:.2f}</td></tr>".format(name =  exnode["name"],
                                                                           size =  exnode["size"] / (2**20))
 
 
-    report = report + "\n  Total size: {size} MB".format(size = harvested_size / (2**20))
+    report = report + "\n  Total size: {size:.2f} MB".format(size = harvested_size / (2**20))
 
     return report
 
