@@ -1,4 +1,4 @@
-bin/#!/usr/python
+#!/usr/bin/python
 # EODN_Harvest_0_1_18.py
 #
 # Harvest data from USGS EROS

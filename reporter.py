@@ -36,10 +36,10 @@ def write_report(history):
             for exnode in run:
                 harvested_size += exnode["size"]
                 report += "<tr><td>{name}</td><td>{size:.2f}</td></tr>".format(name =  exnode["name"],
-                                                                          size =  exnode["size"] / (2**20))
+                                                                          size =  float(exnode["size"]) / (2**20))
 
 
-    report = report + "<br>  Total size: {size:.2f} MB".format(size = harvested_size / (2**20))
+    report = report + "<br>  Total size: {size:.2f} MB".format(size = float(harvested_size) / (2**20))
 
     return report
 
