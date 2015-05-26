@@ -11,6 +11,23 @@ from settings import config
 
 last_reported = datetime.datetime.utcnow()
 
+def StartupReport():
+    start_time = datetime.datetime.utcnow()
+    report = "<h1>EODN Harvester Startup</h1><h3>{start_time}</h3><br><br>".format(start_time = start_time)
+    report += "<div><p>With</p><div style='padding-left:10'>"
+    
+    report += "<p>Source: {source}</p>".format(source = config['usgs_url'])
+    report += "<p>Lower Left [lat/lon]: {ll}</p>".format(ll = config['ll'])
+    report += "<p>Upper Right [lat/lon]: {source}</p>".format(source = config['ur'])
+    report += "<p>Harvest Period: {source}</p>".format(source = config['harvest_window'])
+    report += "<p>Report Period: {source}</p>".format(source = config['report_period'])
+    report += "<p>UNIS URL: {source}:{port}</p>".format(source = config['unis_host'], port = config['unis_port'])
+    report += "<p>Initial Resource Duration: {source}</p>".format(source = config['lors_duration'])
+
+    report += "</div></div>"
+
+    send_mail(report)
+
 def CreateReport(history):
     global last_reported
     

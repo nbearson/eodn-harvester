@@ -806,6 +806,8 @@ def main():
     global logger
     logger = Logger()
     list_config()
+    reporter.StartupReport()
+
     
     # fix bad wsdl file from USGS
     url = '''file://''' + fix_wsdl(wsdlurl=config['usgs_url'])  # Fix the wsdl URL
