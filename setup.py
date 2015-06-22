@@ -1,15 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from setuptools import setup
 
 setup(name        = 'eodnharvester',
-      version     = '0.1.0',
+      version     = '0.2.1',
       description = "eodnharvester gathers scene data from eros, downloads availible scenes, uploads scenes to EODN depots and updates UNIS with availible exnodes.",
       author      = "Jeremy Musser",
-      scripts = ['harvest.py', 'reporter.py', 'settings.py'],
+      scripts = ['app.py', 'reporter.py', 'settings.py', 'search.py', 'auth.py', 'entity.py', 'history.py'],
       entry_points = {
           'console_scripts': [
-              'eodnharvesterd = harvest:main',
+              'eodnharvesterd = app:main',
           ]
       },
   )
