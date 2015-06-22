@@ -275,7 +275,8 @@ def main():
 
     parser = argparse.ArgumentParser(description = "Harvest data for EODN")
     parser.add_argument('-v', '--verbose', action = 'store_true', help = "Makes the output verbose")
-    parser.add_argument('-d', '--debug', action = 'store_true', help = "Includes debugging messages in output")
+    parser.add_argument('-D', '--debug', action = 'store_true', help = "Includes debugging messages in output")
+    parser.add_argument('-d', '--daemon', action = 'store_true'. hep = "Indicates that the process should be run as a daemon")
     args = parser.parse_args()
 
     if args.verbose:
@@ -284,8 +285,10 @@ def main():
     if args.debug:
         settings.DEBUG = True
     
-    
-    with daemon.DaemonContext():
+    if args.daemon:
+        with daemon.DaemonContext():
+            run()
+    else:
         run()
 
 
