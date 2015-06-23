@@ -54,9 +54,10 @@ def write_report(report):
                 harvested_size += int(product["filesize"])
                 size = float(product["filesize"]) / float(2**20)
                 
-                body += "<tr><td>{name}</td><td>{size:.2f}</td><td>{speed}</tr>".format(name  = key,
-                                                                                        size  = size,
-                                                                                        speed = product["download_speed"])
+                body += "<tr><td>{name}</td><td>{size:.2f}</td><td>{speed}</td><td>{ts}</td></tr>".format(name  = key,
+                                                                                                          size  = size,
+                                                                                                          speed = product["download_speed"],
+                                                                                                          ts    = product["ts"])
 
             for error in product["errors"]:
                 for err_ts, value in error.items():

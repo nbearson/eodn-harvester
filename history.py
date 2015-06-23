@@ -20,7 +20,7 @@ def GetLogger(product):
     if logger.handlers:
         return logger
 
-    formatter = logging.Formatter("%(levelname)s| %(message)s")
+    formatter = logging.Formatter("%(asctime)s-%(levelname)s| %(message)s", "%Y-%m-%d %H:%M:%S")
 
     handler = logging.FileHandler("{workspace}/log/{product}.log".format(workspace = settings.WORKSPACE,
                                                                          product   = product), mode = 'a+')

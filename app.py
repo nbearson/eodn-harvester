@@ -185,7 +185,7 @@ def createProduct(product):
         return log
 
     errno = lorsUpload(filename, product["basename"])
-    if str(errno) != '0':
+    if str(errno) != '0' and str(errno) != '1':
         error = "LoRS upload failed - {errno}".format(errno = errno)
         logger.info(error)
         log.error(product["filename"], error)
@@ -276,7 +276,7 @@ def main():
     parser = argparse.ArgumentParser(description = "Harvest data for EODN")
     parser.add_argument('-v', '--verbose', action = 'store_true', help = "Makes the output verbose")
     parser.add_argument('-D', '--debug', action = 'store_true', help = "Includes debugging messages in output")
-    parser.add_argument('-d', '--daemon', action = 'store_true'. hep = "Indicates that the process should be run as a daemon")
+    parser.add_argument('-d', '--daemon', action = 'store_true', help = "Indicates that the process should be run as a daemon")
     args = parser.parse_args()
 
     if args.verbose:
