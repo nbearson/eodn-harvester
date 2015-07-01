@@ -51,8 +51,10 @@ def login(log = None):
 
         retry += 1
         if retry > settings.MAX_RECONNECT:
-            logger.warn("Sleeping for 30 minutes...")
-            time.sleep(30 * 60) # 30 minutes
+            remaining_time = datetime.timedelta(**settings.HARVEST_WINDOW)
+            remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
+            logger.info("--Sleeping for {s} seconds...".format(s = remaining_seconds))
+            time.sleep(remaining_seconds)
         else:
             time.sleep(10) # 10 seconds
     
