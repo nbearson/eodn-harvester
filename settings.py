@@ -9,7 +9,7 @@
 VERBOSE        = False                    # boolean
 DEBUG          = False                    # boolean
 
-THREADS        = 15                       # int
+THREADS        = 5                        # int
 MAX_RECONNECT  = 10                       # int
 HARVEST_WINDOW = {"minutes": 30}          # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
@@ -27,7 +27,7 @@ HISTORY_PATH   = WORKSPACE + "/hist.json" # directory and filename string
 USGS_HOST = "earthexplorer.usgs.gov" # hostname or ip
 USERNAME  = "prblackwell"            # string
 PASSWORD  = "g00d4USGS"              # string
-TIMEOUT   = 20                       # int seconds
+TIMEOUT   = 40                       # int seconds
 
 
 ##################################

@@ -16,6 +16,7 @@ import sys
 import os
 import subprocess
 import concurrent.futures
+import json
 
 import history
 import settings
@@ -28,10 +29,12 @@ window_end = datetime.datetime.utcnow()
 
 
 def productExists(product):
-    logger = history.GetLogger(product["basename"])
-    url = "http://{host}:{port}/exnodes?name={name}".format(host = settings.UNIS_HOST,
-                                                     port = settings.UNIS_PORT,
-                                                     name = product["filename"])
+    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    url = "http://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(host  = settings.UNIS_HOST,
+                                                                                                   port  = settings.UNIS_PORT,
+                                                                                                   scene = product.scene,
+                                                                                                   code  = product.productCode)
+
     try:
         response = requests.get(url)
         response = response.json()
@@ -66,19 +69,19 @@ def _getUnisDirectory(basename):
 
 
 def downloadProduct(product, log = None):
-    logger = history.GetLogger(product["basename"])
+    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
     if not log:
         log = Report()
 
-    logger.info("Downloading {name} from USGS".format(name = product["filename"]))
+    logger.info("Downloading {name} from USGS".format(name = product.filename))
 
     output_file = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, 
-                                                  filename = product["filename"])
+                                                  filename = product.filename)
     filesize = 0
     start_time = datetime.datetime.utcnow()
     
     try:
-        response = requests.get(product["downloadUrl"], stream = True, timeout = settings.TIMEOUT)
+        response = requests.get(product.downloadUrl, stream = True, timeout = settings.TIMEOUT)
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to download service - {exp}".format(exp = exp)
         logger.error(error)
@@ -104,11 +107,11 @@ def downloadProduct(product, log = None):
                 filesize += len(chunk)
                 
                 if settings.VERBOSE and settings.THREADS <= 1:
-                    percent = float(filesize) / float(product["filesize"])
+                    percent = float(filesize) / float(product.filesize)
                     sys.stdout.write("\r[{bar:<30}] {percent:0.2f}%  <{so_far:>10} of {total:<10}>".format(bar     = "#" * int(30 * percent), 
                                                                                                            percent = float(percent * 100),
                                                                                                            so_far  = filesize,
-                                                                                                           total   = product["filesize"]))
+                                                                                                           total   = product.filesize))
                     sys.stdout.flush()
     except Exception as exp:
         error = "Unknown error while opening and storing file - {exp}".format(exp = exp)
@@ -125,8 +128,8 @@ def downloadProduct(product, log = None):
         delta_s = (delta.days * 3600 * 24) + delta.seconds
         delta_micro = (delta_s * 10**6) + delta.microseconds
         speed = float(filesize) / float(delta_micro)
-        log.write(product["filename"], "filesize", str(filesize))
-        log.write(product["filename"], "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
+        log.write(product.filename, "filesize", str(filesize))
+        log.write(product.filename, "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
     except Exception as exp:
         logger.error("Unable to calculate download speed")
 
@@ -166,41 +169,79 @@ def lorsUpload(filename, basename):
         logger.error("Unknown error while calling lors_upload - {exp}".format(exp = exp))
             
     return result
-    
 
+    
+def addMetadata(product):
+    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    url = "http://{host}:{port}/exnodes?name={name}".format(host = settings.UNIS_HOST,
+                                                     port = settings.UNIS_PORT,
+                                                     name = product.filename)
+    try:
+        response = requests.get(url)
+        response = response.json()[0]
+        tmpId    = response["id"]
+        
+        if "metadata" not in response:
+            response["metadata"] = {}
+
+        response["metadata"]["productCode"] = product.productCode
+        response["metadata"]["scene"] = product.scene
+        
+        url = "http://{host}:{port}/exnodes/{uid}".format(host = settings.UNIS_HOST,
+                                                          port = settings.UNIS_PORT,
+                                                          uid  = tmpId)
+        response = requests.put(url, data = json.dumps(response))
+        response = response.json()
+    except requests.exceptions.RequestException as exp:
+        error = "Failed to connect to UNIS - {exp}".format(exp = exp)
+        logger.error(error)
+        return False
+    except ValueError as exp:
+        error = "Error while decoding unis json - {exp}".format(exp = exp)
+        logger.error(error)
+        return False
+    except Exception as exp:
+        error = "Unkown error while contacting UNIS - {exp}".format(exp = exp)
+        logger.error(error)
+        return False
+
+    return True
 
 
 def createProduct(product):
     hist = history.GetHistory()
     log = history.Record()
-    logger = history.GetLogger(product["basename"])
+    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
     
     if productExists(product):
         logger.info("Product on record, skipping...")
         return log
 
+    product.initialize()
     filename = downloadProduct(product, log)
     
     if not filename:
         return log
 
-    errno = lorsUpload(filename, product["basename"])
+    errno = lorsUpload(filename, product.basename)
     if str(errno) != '0' and str(errno) != '1':
         error = "LoRS upload failed - {errno}".format(errno = errno)
         logger.info(error)
-        log.error(product["filename"], error)
+        log.error(product.filename, error)
+    else:
+        addMetadata(product)
 
     try:
-        logger.info("Removing {product}".format(product = product["filename"]))
+        logger.info("Removing {product}".format(product = product.filename))
         os.remove(filename)
     except Exception as exp:
         error = "Failed to remove local file - {exp}".format(exp = exp)
         logger.error(error)
-        log.error(product["filename"], error)
+        log.error(product.filename, error)
         return log
 
     if str(errno) == '0':
-        log.write(product["filename"], "complete", True)
+        log.write(product.filename, "complete", True)
     return log
 
 
@@ -216,7 +257,6 @@ def harvest(scene):
                 log.merge(report)
     else:
         for product in scene:
-            logger.info("Adding {product_id}".format(product_id = product["basename"]))
             report = createProduct(product)
             log.merge(report)
 
