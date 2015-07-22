@@ -6,7 +6,7 @@ setup(name        = 'eodnharvester',
       version     = '0.2.1',
       description = "eodnharvester gathers scene data from eros, downloads availible scenes, uploads scenes to EODN depots and updates UNIS with availible exnodes.",
       author      = "Jeremy Musser",
-      scripts = ['app.py', 'reporter.py', 'settings.py', 'search.py', 'auth.py', 'entity.py', 'history.py'],
+      scripts = ['app.py', 'reporter.py', 'settings.py', 'search.py', 'auth.py', 'entity.py', 'history.py', 'product.py'],
       entry_points = {
           'console_scripts': [
               'eodnharvesterd = app:main',

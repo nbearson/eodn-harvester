@@ -23,7 +23,7 @@ class Product(object):
         url = "http://{usgs_host}/inventory/json/{request_code}"
         logger = history.GetLogger("{scene}_{code}".format(scene = self.scene, code = self.productCode))
         apiKey = auth.login()
-
+        
         logger.info("Getting download url for {product}".format(product = self.productCode))
         downloadRequest = {
             "datasetName": settings.DATASET_NAME,
@@ -44,23 +44,21 @@ class Product(object):
             if entity_data["errorCode"]:
                 error = "Recieved error from USGS - {err}".format(err = entity_data["error"])
                 logger.error(error)
+                auth.logout()
                 return False
         except requests.exceptions.RequestException as exp:
             logger.error("Failed to get entity metadata - {exp}".format(exp = exp))
-            error = {}
-            error[self.productCode] = exp
+            auth.logout()
             return False
         except ValueError as exp:
             logger.error("Error while decoding entity json - {exp}".format(exp = exp))
-            error = {}
-            error[self.productCode] = exp
+            auth.logout()
             return False
         except Exception as exp:
             logger.error("Unknown error while getting entity metadata - {exp}".format(exp = exp))
-            error = {}
-            error[self.productCode] = exp
+            auth.logout()
             return False
-            
+        
         try:
             if len(entity_data["data"]) == 0:
                 raise Exception("No download URL recieved")
@@ -72,9 +70,12 @@ class Product(object):
             logger.info("  Found {product} at {url}".format(product = self.productCode, url = tmpURL))
         except Exception as exp:
             logger.error("Recieved bad download data from USGS - {exp}".format(exp = exp))
-
+            auth.logout()
+            return False
+        
         auth.logout()
-
+        return True
+    
     def _getBasename(self, url):
         parts = url.rsplit('/')
         body  = parts[-1]

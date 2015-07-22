@@ -2,8 +2,14 @@ import smtplib
 from email.mime.text import MIMEText
 import datetime
 import logging
+import requests
+import subprocess
+import random
+import filecmp
+import os
 
 import settings
+import auth
 import history
 
 last_reported = datetime.datetime.utcnow()
@@ -33,14 +39,28 @@ def CreateReport(report):
         body = write_report(report)
         send_mail(body)
         last_reported = datetime.datetime.utcnow()
+
+############################
+        print(body)        # FOR DEBUGGING ONLY
+############################
+
         return body
 
 
 def write_report(report):
     global last_reported
+    product_list = list(report._record.keys())
     now = datetime.datetime.utcnow()
     harvested_size = 0
     error_list = {}
+
+    product_list.remove(history.SYS)
+    product_list = list(filter(lambda product: product.endswith(".tar.gz") and "complete" in  report._record[product], product_list))
+    if product_list:
+        sample_product = random.choice(product_list)
+    else:
+        sample_product = ""
+        
     body = "The following files were harvested from {0} to {1}:<br><br><table>".format(last_reported.strftime("%Y-%m-%d %H:%M:00"), now.strftime("%Y-%m-%d %H:%M:00"))
     body += "<tr><th>Filename</th><th>Size (MB)</th><th>Download Speed</th></tr>"
 
@@ -73,8 +93,17 @@ def write_report(report):
 
     body += "</table><br>  Total size: {size:.2f} MB<br><br>".format(size = float(harvested_size) / (2**20))
 
+    print("--Validating random download: {product}".format(product = sample_product))
+    validated = True
+    if sample_product and validate_product(sample_product):
+        validated = False
+        
+    body += "<p>Sample product {product}... [<span style='color:{color}'>{valid}</span>]</p>".format(product = sample_product,
+                                                                                                     color   = "green" if validated else "red",
+                                                                                                     valid   = "PASS" if validated else "FAIL")
+        
     if error_list:
-        body += "The following errors occured during harvesting:<br><table>"
+        body += "<br><br><br>The following errors occured during harvesting:<br><table>"
 
         for key, errors in error_list.items():
             try:
@@ -105,6 +134,136 @@ def send_mail(report):
     server.quit()
 
 
+def validate_product(product):
+    eodn_file = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_eodn.tar.gz")
+    source_file  = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_source.tar.gz")
+
+    if not download_source(product, source_file):
+        return False
+
+    if not download_eodn(product, eodn_file):
+        return False
+
+    if os.path.getsize(source_file) != os.path.getsize(eodn_file) or \
+       not filecmp.cmp(source_file, eodn_file, shallow = False):
+        return False
+
+    return True
+
+
+
+def download_source(product, dest_file):
+    url = "http://{usgs_host}/inventory/json/{request_code}".format(usgs_host    = settings.USGS_HOST,
+                                                                    request_code = "download")
+    tmpURL = ""
+    apiKey = auth.login()
+    downloadRequest = {
+        "datasetName": settings.DATASET_NAME,
+        "apiKey":      apiKey,
+        "node":        settings.NODE,
+        "entityIds":   product.split(".", 1)[0:1],
+        "products":    ["STANDARD"]
+    }
+    try:
+        entity_data = requests.get(url, params = { 'jsonRequest': json.dumps(downloadRequest) }, timeout = settings.TIMEOUT)
+        entity_data = entity_data.json()
+        
+        if entity_data["errorCode"]:
+            error = "Recieved error from USGS - {err}".format(err = entity_data["error"])
+            print(error)
+            auth.logout()
+            return False
+    except requests.exceptions.RequestException as exp:
+        print("Failed to get entity metadata - {exp}".format(exp = exp))
+        auth.logout()
+        return False
+    except ValueError as exp:
+        print("Error while decoding entity json - {exp}".format(exp = exp))
+        auth.logout()
+        return False
+    except Exception as exp:
+        print("Unknown error while getting entity metadata - {exp}".format(exp = exp))
+        auth.logout()
+        return False
+    
+    try:
+        if len(entity_data["data"]) == 0:
+            raise Exception("No download URL recieved")
+        tmpURL = entity_data["data"][0]
+    except Exception as exp:
+        print("Recieved bad download data from USGS - {exp}".format(exp = exp))
+        auth.logout()
+        return False
+
+
+    try:
+        response = requests.get(tmpURL, stream = True, timeout = settings.TIMEOUT)
+    except requests.exceptions.RequestException as exp:
+        error = "Failed to connect to download service - {exp}".format(exp = exp)
+        print(error)
+        return False
+    except Exception as exp:
+        error = "Unknown error while downloading file - {exp}".format(exp = exp)
+        print(error)
+        return False
+
+    try:
+        with open(dest_file, 'wb') as f:
+            for chunk in response.iter_content(chunk_size = settings.DOWNLOAD_CHUNKSIZE):
+                if not chunk:
+                    continue
+                
+                f.write(chunk)
+                f.flush()
+    except Exception as exp:
+        error = "Unknown error while opening and storing file - {exp}".format(exp = exp)
+        print(error)
+        return False
+        
+    auth.logout()
+    return True
+
+
+
+
+def download_eodn(product, dest_file):
+    url = "http://{host}:{port}/exnodes?name={product}".format(host    = settings.UNIS_HOST,
+                                                               port    = settings.UNIS_PORT,
+                                                               product = product)
+    
+    try:
+        response = requests.get(url)
+        response = response.json()
+    except requests.exceptions.RequestException as exp:
+        error = "Failed to connect to UNIS - {exp}".format(exp = exp)
+        print(error)
+        return False
+    except ValueError as exp:
+        error = "Error while decoding unis json - {exp}".format(exp = exp)
+        print(error)
+        return False
+    except Exception as exp:
+        error = "Unkown error while contacting UNIS - {exp}".format(exp = exp)
+        print(error)
+        return False
+
+    if response:
+        lors_url = response["selfRef"]
+        call = subprocess.Popen(['lors_download', 
+                                 '-o', dest_file, lors_url], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        
+        out, err = call.communicate()
+        result   = call.returncode
+        if settings.VERBOSE:
+            if out:
+                print(out.decode('utf-8'))
+            if err:
+                print(err.decode('utf-8'))
+
+        return True
+    else:
+        return False
+
 
 
 
@@ -112,7 +271,7 @@ def UnitTests():
     import history
     global last_reported
 
-    last_reported = datetime.datetime.utcnow() - datetime.timedelta(**settings.REPORT_PERIOD) - datetime.timedelta(minutes = 1)
+    last_reported = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW) - datetime.timedelta(minutes = 1)
     log = history.GetHistory()
     print(CreateReport(log))
 

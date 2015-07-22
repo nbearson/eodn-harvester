@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 #############################################
-#  EODNHarvest gathers landsat imagery from 
-#  the USGS and exports it to EODN.
-#
-#  @author:  Jeremy Musser
-#  @date:    06/07/2015
-#  @version: 0.2.1
+#  EODNHarvest gathers landsat imagery from #
+#  the USGS and exports it to EODN.         #
+#                                           #
+#  @author:  Jeremy Musser                  #
+#  @date:    06/07/2015                     #
+#  @version: 0.3.1                          #
 #############################################
 import daemon
 import datetime
@@ -118,7 +118,7 @@ def downloadProduct(product, log = None):
         logger.error(error)
         log.error(history.SYS, error)
     finally:
-        if settings.VERBOSE:
+        if settings.VERBOSE and settings.THREADS <= 1:
             sys.stdout.write("\n")
 
     end_time = datetime.datetime.utcnow()
@@ -217,12 +217,13 @@ def createProduct(product):
         logger.info("Product on record, skipping...")
         return log
 
-    product.initialize()
-    filename = downloadProduct(product, log)
-    
-    if not filename:
+    if product.initialize():
+        filename = downloadProduct(product, log)
+        if not filename:
+            return log
+    else:
         return log
-
+    
     errno = lorsUpload(filename, product.basename)
     if str(errno) != '0' and str(errno) != '1':
         error = "LoRS upload failed - {errno}".format(errno = errno)
