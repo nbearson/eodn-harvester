@@ -6,6 +6,7 @@ import requests
 import subprocess
 import random
 import filecmp
+import json
 import os
 
 import settings
@@ -32,30 +33,27 @@ def StartupReport():
     send_mail(body)
 
 def CreateReport(report):
-    global last_reported
-    
+    global last_reported    
     
     if datetime.datetime.utcnow() - last_reported >= datetime.timedelta(**settings.REPORT_PERIOD):
         body = write_report(report)
         send_mail(body)
         last_reported = datetime.datetime.utcnow()
 
-############################
-        print(body)        # FOR DEBUGGING ONLY
-############################
-
         return body
 
 
 def write_report(report):
     global last_reported
+    logger = history.GetLogger("reporter")
     product_list = list(report._record.keys())
     now = datetime.datetime.utcnow()
     harvested_size = 0
     error_list = {}
-
+    
     product_list.remove(history.SYS)
-    product_list = list(filter(lambda product: product.endswith(".tar.gz") and "complete" in  report._record[product], product_list))
+    product_list = list(filter(lambda product: product.endswith(".tar.gz") and "complete" in report._record[product] and datetime.datetime.strptime(report._record[product]["ts"], "%Y-%m-%d %H:%M:%S") > last_reported,
+                               product_list))
     if product_list:
         sample_product = random.choice(product_list)
     else:
@@ -79,28 +77,28 @@ def write_report(report):
                                                                                                           speed = product["download_speed"],
                                                                                                           ts    = product["ts"])
 
-            for error in product["errors"]:
-                for err_ts, value in error.items():
-                    ts = datetime.datetime.strptime(err_ts, "%Y-%m-%d %H:%M:%S")
-                    if ts > last_reported:
-                        if key not in error_list:
-                            error_list[key] = []
-                        error_list[key].append(value)
-                
+            if "errors" in product:
+                for error in product["errors"]:
+                    for err_ts, value in error.items():
+                        ts = datetime.datetime.strptime(err_ts, "%Y-%m-%d %H:%M:%S")
+                        if ts > last_reported:
+                            if key not in error_list:
+                                error_list[key] = []
+                            error_list[key].append(value)
         
         except Exception as exp:
-            logging.warn("Error in report - {exp}".format(exp = exp))
+            logger.warn("Error in report - {exp}".format(exp = exp))
 
     body += "</table><br>  Total size: {size:.2f} MB<br><br>".format(size = float(harvested_size) / (2**20))
 
-    print("--Validating random download: {product}".format(product = sample_product))
-    validated = True
-    if sample_product and validate_product(sample_product):
-        validated = False
-        
-    body += "<p>Sample product {product}... [<span style='color:{color}'>{valid}</span>]</p>".format(product = sample_product,
-                                                                                                     color   = "green" if validated else "red",
-                                                                                                     valid   = "PASS" if validated else "FAIL")
+    validated = False
+    if sample_product:
+        logger.warn("--Validating random download: {product}".format(product = sample_product))
+        validated, error = validate_product(sample_product)
+        body += "<p>Sample product {product}... [<span style='color:{color}'>{valid}</span>] {cause}</p>".format(product = sample_product,
+                                                                                                                 color   = "green" if validated else "red",
+                                                                                                                 valid   = "PASS" if validated else "FAIL",
+                                                                                                                 cause   = error)
         
     if error_list:
         body += "<br><br><br>The following errors occured during harvesting:<br><table>"
@@ -114,7 +112,7 @@ def write_report(report):
                 
                 body += "</td></tr>"
             except Exception as exp:
-                logging.warn("Error in report pass 2 - {exp}".format(exp = exp))
+                logger.warn("Error in report pass 2 - {exp}".format(exp = exp))
 
     body += "</table>"
 
@@ -139,20 +137,21 @@ def validate_product(product):
     source_file  = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_source.tar.gz")
 
     if not download_source(product, source_file):
-        return False
+        return False, "Failed to download from USGS"
 
     if not download_eodn(product, eodn_file):
-        return False
+        return False, "Failed to download from EODN"
 
     if os.path.getsize(source_file) != os.path.getsize(eodn_file) or \
        not filecmp.cmp(source_file, eodn_file, shallow = False):
-        return False
+        return False, "USGS and EODN files not equal"
 
-    return True
+    return True, ""
 
 
 
 def download_source(product, dest_file):
+    logger = history.GetLogger("reporter")
     url = "http://{usgs_host}/inventory/json/{request_code}".format(usgs_host    = settings.USGS_HOST,
                                                                     request_code = "download")
     tmpURL = ""
@@ -170,19 +169,19 @@ def download_source(product, dest_file):
         
         if entity_data["errorCode"]:
             error = "Recieved error from USGS - {err}".format(err = entity_data["error"])
-            print(error)
+            logger.warn(error)
             auth.logout()
             return False
     except requests.exceptions.RequestException as exp:
-        print("Failed to get entity metadata - {exp}".format(exp = exp))
+        logger.warn("Failed to get entity metadata - {exp}".format(exp = exp))
         auth.logout()
         return False
     except ValueError as exp:
-        print("Error while decoding entity json - {exp}".format(exp = exp))
+        logger.warn("Error while decoding entity json - {exp}".format(exp = exp))
         auth.logout()
         return False
     except Exception as exp:
-        print("Unknown error while getting entity metadata - {exp}".format(exp = exp))
+        logger.warn("Unknown error while getting entity metadata - {exp}".format(exp = exp))
         auth.logout()
         return False
     
@@ -191,7 +190,7 @@ def download_source(product, dest_file):
             raise Exception("No download URL recieved")
         tmpURL = entity_data["data"][0]
     except Exception as exp:
-        print("Recieved bad download data from USGS - {exp}".format(exp = exp))
+        logger.warn("Recieved bad download data from USGS - {exp}".format(exp = exp))
         auth.logout()
         return False
 
@@ -200,11 +199,11 @@ def download_source(product, dest_file):
         response = requests.get(tmpURL, stream = True, timeout = settings.TIMEOUT)
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to download service - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
     except Exception as exp:
         error = "Unknown error while downloading file - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
 
     try:
@@ -217,7 +216,7 @@ def download_source(product, dest_file):
                 f.flush()
     except Exception as exp:
         error = "Unknown error while opening and storing file - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
         
     auth.logout()
@@ -227,24 +226,25 @@ def download_source(product, dest_file):
 
 
 def download_eodn(product, dest_file):
+    logger = history.GetLogger("reporter")
     url = "http://{host}:{port}/exnodes?name={product}".format(host    = settings.UNIS_HOST,
                                                                port    = settings.UNIS_PORT,
                                                                product = product)
     
     try:
         response = requests.get(url)
-        response = response.json()
+        response = response.json()[0]
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
     except ValueError as exp:
         error = "Error while decoding unis json - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
     except Exception as exp:
         error = "Unkown error while contacting UNIS - {exp}".format(exp = exp)
-        print(error)
+        logger.warn(error)
         return False
 
     if response:
@@ -256,15 +256,13 @@ def download_eodn(product, dest_file):
         result   = call.returncode
         if settings.VERBOSE:
             if out:
-                print(out.decode('utf-8'))
+                logger.warn(out.decode('utf-8'))
             if err:
-                print(err.decode('utf-8'))
+                logger.warn(err.decode('utf-8'))
 
         return True
     else:
-        return False
-
-
+        return False    
 
 
 def UnitTests():

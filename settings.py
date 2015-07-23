@@ -6,12 +6,12 @@
 #                                #
 ##################################
 
-VERBOSE        = False                    # boolean
-DEBUG          = False                    # boolean
+VERBOSE        = True                    # boolean
+DEBUG          = True                     # boolean
 
 THREADS        = 5                        # int
 MAX_RECONNECT  = 10                       # int
-HARVEST_WINDOW = {"minutes": 15}              # timedelta obj
+HARVEST_WINDOW = {"days": 1}              # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
 HISTORY_PATH   = WORKSPACE + "/hist.json" # directory and filename string
 
@@ -86,5 +86,5 @@ LoRS = {
 #                                #
 ##################################
 
-REPORT_PERIOD = { "days": 1 }       # timedelta obj
+REPORT_PERIOD = { "minutes": 20 }       # timedelta obj
 REPORT_EMAIL  = "jemusser@umail.iu.edu" # email string

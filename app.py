@@ -241,7 +241,7 @@ def createProduct(product):
         log.error(product.filename, error)
         return log
 
-    if str(errno) == '0':
+    if str(errno) == '0' or str(errno) == '1':
         log.write(product.filename, "complete", True)
     return log
 
@@ -281,7 +281,7 @@ def createSearchParams():
 
 def run():
     logger = history.GetLogger("harvest")
-    logger.info("Starting harvester...")
+    logger.info("Starting harvester....")
     log = history.GetHistory()
 
     while True:
