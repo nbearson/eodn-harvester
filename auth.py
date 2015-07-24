@@ -83,19 +83,22 @@ def logout(log = None):
             error = "Error from USGS while logging in - {err}".format(err = response["error"])
             logger.error(error)
             log.error(history.SYS, error)
-        
+    
     except requests.exceptions.RequestException as exp:
         error = "Failed to contact USGS - {exp}".format(exp = exp)
         logger.error(error)
         log.error(history.SYS, error)
+        return False
     except ValueError as exp:
         error = "Error while decoding response - {exp}".format(exp = exp)
         logger.error(error)
         log.error(history.SYS, error)
+        return False
     except Exception as exp:
         error = "Unknown error while logging into USGS - {exp}".format(exp = exp)
         logger.error(error)
         log.error(history.SYS, error)
+        return False
     
     _apiKey = response["data"]
     
