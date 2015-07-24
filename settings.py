@@ -6,12 +6,12 @@
 #                                #
 ##################################
 
-VERBOSE        = True                    # boolean
-DEBUG          = True                     # boolean
+VERBOSE        = False                    # boolean
+DEBUG          = False                    # boolean
 
-THREADS        = 5                        # int
+THREADS        = 10                       # int
 MAX_RECONNECT  = 10                       # int
-HARVEST_WINDOW = {"days": 1}              # timedelta obj
+HARVEST_WINDOW = {"minutes": 15}          # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
 HISTORY_PATH   = WORKSPACE + "/hist.json" # directory and filename string
 
@@ -67,9 +67,11 @@ DOWNLOAD_CHUNKSIZE = 8192 # int
 #                                #
 ##################################
 
+#UNIS_HOST = "dev.incntre.iu.edu"
 UNIS_HOST = "localhost"          # hostname or ip
 UNIS_PORT = 8888                 # port as int
 LoRS = {
+    #"duration": 30 * 24,
     "duration": 10,              # allocation duration in hours int
     "copies":   3,               # replication factor           int
     "depots":   20,              # number of depots             int
@@ -86,5 +88,7 @@ LoRS = {
 #                                #
 ##################################
 
+#REPORT_PERIOD = {"days": 1}
 REPORT_PERIOD = { "minutes": 20 }       # timedelta obj
+#REPORT_EMAIL = "dlt@crest.iu.edu"
 REPORT_EMAIL  = "jemusser@umail.iu.edu" # email string

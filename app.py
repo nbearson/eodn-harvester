@@ -267,6 +267,8 @@ def harvest(scene):
 
 
 def createSearchParams():
+    global window_start
+    global window_end
     result = {}
     result["datasetName"] = settings.DATASET_NAME
     result["lowerLeft"]   = settings.LOWER_LEFT
@@ -280,6 +282,8 @@ def createSearchParams():
     return result
 
 def run():
+    global window_start
+    global window_end
     logger = history.GetLogger("harvest")
     logger.info("Starting harvester....")
     log = history.GetHistory()
