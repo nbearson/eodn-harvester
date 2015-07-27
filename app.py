@@ -289,30 +289,33 @@ def run():
     log = history.GetHistory()
 
     while True:
-        window_end = datetime.datetime.utcnow()
-        new_start = window_end
-        search = Search(**createSearchParams())
-        
-        if settings.THREADS > 1:
-            with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
-                for report in executor.map(harvest, search):
+        try:
+            window_end = datetime.datetime.utcnow()
+            new_start = window_end
+            search = Search(**createSearchParams())
+            
+            if settings.THREADS > 1:
+                with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
+                    for report in executor.map(harvest, search):
+                        log.merge(report)
+            else:
+                for scene in search:
+                    report = harvest(scene)
                     log.merge(report)
-        else:
-            for scene in search:
-                report = harvest(scene)
-                log.merge(report)
+                            
+            log.merge(search.log)
+            log.flush()
+            reporter.CreateReport(log)
 
-        log.merge(search.log)
-        log.flush()
-        reporter.CreateReport(log)
-
-        window_start = new_start
-        delay_time = datetime.datetime.utcnow() - new_start
-        if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
-            remaining_time = datetime.timedelta(**settings.HARVEST_WINDOW) - delay_time
-            remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
-            logger.info("--Sleeping for {s} seconds...".format(s = remaining_seconds))
-            time.sleep(remaining_seconds)
+            window_start = new_start
+            delay_time = datetime.datetime.utcnow() - new_start
+            if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
+                remaining_time = datetime.timedelta(**settings.HARVEST_WINDOW) - delay_time
+                remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
+                logger.info("--Sleeping for {s} seconds...".format(s = remaining_seconds))
+                time.sleep(remaining_seconds)
+        except Exception as exp:
+            logger.info("Critical failure: {exp} - Restarting harvest".format(exp = exp))
     
         
 
@@ -329,7 +332,7 @@ def main():
     
     if args.debug:
         settings.DEBUG = True
-    
+
     if args.daemon:
         with daemon.DaemonContext():
             run()
