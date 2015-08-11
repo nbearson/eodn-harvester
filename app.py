@@ -29,7 +29,7 @@ window_end = datetime.datetime.utcnow()
 
 
 def productExists(product):
-    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    logger = history.GetLogger()
     url = "http://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(host  = settings.UNIS_HOST,
                                                                                                    port  = settings.UNIS_PORT,
                                                                                                    scene = product.scene,
@@ -69,7 +69,7 @@ def _getUnisDirectory(basename):
 
 
 def downloadProduct(product, log = None):
-    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    logger = history.GetLogger()
     if not log:
         log = Report()
 
@@ -140,7 +140,7 @@ def lorsUpload(filename, basename):
     result = '0'
     output = "http://{unis_host}:{unis_port}/exnodes".format(unis_host = settings.UNIS_HOST,
                                                              unis_port = settings.UNIS_PORT)
-    logger = history.GetLogger(basename)
+    logger = history.GetLogger()
     directory = _getUnisDirectory(basename)
 
     try:
@@ -172,7 +172,7 @@ def lorsUpload(filename, basename):
 
     
 def addMetadata(product):
-    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    logger = history.GetLogger()
     url = "http://{host}:{port}/exnodes?name={name}".format(host = settings.UNIS_HOST,
                                                      port = settings.UNIS_PORT,
                                                      name = product.filename)
@@ -211,7 +211,7 @@ def addMetadata(product):
 def createProduct(product):
     hist = history.GetHistory()
     log = history.Record()
-    logger = history.GetLogger("{scene}_{code}".format(scene = product.scene, code = product.productCode))
+    logger = history.GetLogger()
     
     if productExists(product):
         logger.info("Product on record, skipping...")
@@ -249,7 +249,7 @@ def createProduct(product):
 
 def harvest(scene):
     log = history.Record()
-    logger = history.GetLogger("harvest")
+    logger = history.GetLogger()
     logger.info("Starting work on {scene_id}".format(scene_id = scene.entity_id))
     
     if settings.THREADS > 1:
@@ -284,7 +284,7 @@ def createSearchParams():
 def run():
     global window_start
     global window_end
-    logger = history.GetLogger("harvest")
+    logger = history.GetLogger()
     logger.info("Starting harvester....")
     log = history.GetHistory()
 

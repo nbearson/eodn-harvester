@@ -21,7 +21,7 @@ class Product(object):
 
     def initialize(self):
         url = "http://{usgs_host}/inventory/json/{request_code}"
-        logger = history.GetLogger("{scene}_{code}".format(scene = self.scene, code = self.productCode))
+        logger = history.GetLogger()
         apiKey = auth.login()
         
         logger.info("Getting download url for {product}".format(product = self.productCode))

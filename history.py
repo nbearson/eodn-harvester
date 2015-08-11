@@ -4,14 +4,16 @@ import os
 import json
 import datetime
 
+from logging.handlers import RotatingFileHandler
+
 import settings
 
 
 SYS = "System"
 
-def GetLogger(product):
-    logger = logging.getLogger(product)
-
+def GetLogger():
+    logger = logging.getLogger("harvest")
+    
     if settings.DEBUG:
         logger.setLevel(logging.DEBUG)
     else:
@@ -22,9 +24,8 @@ def GetLogger(product):
 
     formatter = logging.Formatter("%(asctime)s-%(levelname)s| %(message)s", "%Y-%m-%d %H:%M:%S")
 
-    handler = logging.FileHandler("{workspace}/log/{product}.log".format(workspace = settings.WORKSPACE,
-                                                                         product   = product), mode = 'a+')
-    handler.setLevel(logging.INFO)
+    handler = RotatingFileHandler("{workspace}/log/harvest.log".format(workspace = settings.WORKSPACE), maxBytes = 500000, backupCount = 5)
+    handler.setLevel(logging.WARNING)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     

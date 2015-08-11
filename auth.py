@@ -15,7 +15,7 @@ _apiKey = ""
 
 def login(log = None):
     global _apiKey
-    logger = history.GetLogger("harvest")
+    logger = history.GetLogger()
     if not log:
         log = history.Record()
 
@@ -66,7 +66,7 @@ def login(log = None):
 
 def logout(log = None):
     global _apiKey
-    logger = history.GetLogger("harvest")
+    logger = history.GetLogger()
     if not log:
         log = history.Record()
 

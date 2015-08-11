@@ -45,7 +45,7 @@ def CreateReport(report):
 
 def write_report(report):
     global last_reported
-    logger = history.GetLogger("reporter")
+    logger = history.GetLogger()
     product_list = list(report._record.keys())
     now = datetime.datetime.utcnow()
     harvested_size = 0
@@ -151,7 +151,7 @@ def validate_product(product):
 
 
 def download_source(product, dest_file):
-    logger = history.GetLogger("reporter")
+    logger = history.GetLogger()
     url = "http://{usgs_host}/inventory/json/{request_code}".format(usgs_host    = settings.USGS_HOST,
                                                                     request_code = "download")
     tmpURL = ""
@@ -226,7 +226,7 @@ def download_source(product, dest_file):
 
 
 def download_eodn(product, dest_file):
-    logger = history.GetLogger("reporter")
+    logger = history.GetLogger()
     url = "http://{host}:{port}/exnodes?name={product}".format(host    = settings.UNIS_HOST,
                                                                port    = settings.UNIS_PORT,
                                                                product = product)

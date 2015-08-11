@@ -37,7 +37,7 @@ class Search(object):
         
     
     def find(self, startingNumber = 1):
-        logger = history.GetLogger("harvest")
+        logger = history.GetLogger()
         apiKey = auth.login(self.log)
 
         self.search["startingNumber"] = startingNumber

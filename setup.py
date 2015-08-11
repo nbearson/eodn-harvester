@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name        = 'eodnharvester',
-      version     = '0.2.1',
+      version     = '0.2.2',
       description = "eodnharvester gathers scene data from eros, downloads availible scenes, uploads scenes to EODN depots and updates UNIS with availible exnodes.",
       author      = "Jeremy Musser",
       scripts = ['app.py', 'reporter.py', 'settings.py', 'search.py', 'auth.py', 'entity.py', 'history.py', 'product.py'],

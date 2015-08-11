@@ -38,7 +38,7 @@ class Entity(object):
 
 
     def GetProducts(self):
-        logger = history.GetLogger("harvest")
+        logger = history.GetLogger()
         apiKey = auth.login(self.log)
 
         self.products = []
