@@ -92,3 +92,12 @@ LoRS = {
 REPORT_PERIOD = { "minutes": 20 }       # timedelta obj
 #REPORT_EMAIL = "dlt@crest.iu.edu"
 REPORT_EMAIL  = "jemusser@umail.iu.edu" # email string
+
+##################################
+#                                #
+#       Auth Related settings    #
+#                                #
+##################################
+
+AUTH_FIELD = "secToken"
+AUTH_VALUE = ["landsat"]

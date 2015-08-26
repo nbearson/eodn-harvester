@@ -26,7 +26,8 @@ from search import Search
 
 window_start = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
 window_end = datetime.datetime.utcnow()
-
+AUTH_FIELD = settings.AUTH_FIELD
+AUTH_VALUE = settings.AUTH_VALUE
 
 def productExists(product):
     logger = history.GetLogger()
@@ -186,6 +187,7 @@ def addMetadata(product):
 
         response["metadata"]["productCode"] = product.productCode
         response["metadata"]["scene"] = product.scene
+        response[AUTH_FIELD] = AUTH_VALUE
         
         url = "http://{host}:{port}/exnodes/{uid}".format(host = settings.UNIS_HOST,
                                                           port = settings.UNIS_PORT,
