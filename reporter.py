@@ -15,23 +15,6 @@ import history
 
 last_reported = datetime.datetime.utcnow()
 
-def StartupReport():
-    start_time = datetime.datetime.utcnow()
-    body = "<h1>EODN Harvester Startup</h1><h3>{start_time}</h3><br><br>".format(start_time = start_time)
-    body += "<div><p>With</p><div style='padding-left:10'>"
-    
-    body += "<p>Source: {source}</p>".format(source = settings.DATASET_NAME)
-    body += "<p>Lower Left [lat/lon]: {ll}</p>".format(ll = settings.LOWER_LEFT)
-    body += "<p>Upper Right [lat/lon]: {source}</p>".format(source = settings.UPPER_RIGHT)
-    body += "<p>Harvest Period: {source}</p>".format(source = settings.HARVEST_WINDOW)
-    body += "<p>Report Period: {source}</p>".format(source = settings.REPORT_PERIOD)
-    body += "<p>UNIS URL: {source}:{port}</p>".format(source = settings.UNIS_HOST, port = settings.UNIS_PORT)
-    body += "<p>Initial Resource Duration: {source}</p>".format(source = settings.LoRS["duration"])
-
-    body += "</div></div>"
-
-    send_mail(body)
-
 def CreateReport(report):
     global last_reported    
     
@@ -50,8 +33,10 @@ def write_report(report):
     now = datetime.datetime.utcnow()
     harvested_size = 0
     error_list = {}
-    
-    product_list.remove(history.SYS)
+
+    if history.SYS in product_list:
+        product_list.remove(history.SYS)
+
     product_list = list(filter(lambda product: product.endswith(".tar.gz") and "complete" in report._record[product] and datetime.datetime.strptime(report._record[product]["ts"], "%Y-%m-%d %H:%M:%S") > last_reported,
                                product_list))
     if product_list:
@@ -133,7 +118,8 @@ def send_mail(report):
 
 
 def validate_product(product):
-    eodn_file = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_eodn.tar.gz")
+    tmpDiff      = 0
+    eodn_file    = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_eodn.tar.gz")
     source_file  = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_source.tar.gz")
 
     if not download_source(product, source_file):
@@ -142,10 +128,30 @@ def validate_product(product):
     if not download_eodn(product, eodn_file):
         return False, "Failed to download from EODN"
 
-    if os.path.getsize(source_file) != os.path.getsize(eodn_file) or \
-       not filecmp.cmp(source_file, eodn_file, shallow = False):
-        return False, "USGS and EODN files not equal"
+    if os.path.getsize(source_file) != os.path.getsize(eodn_file):
+        os.remove(source_file)
+        os.remove(eodn_file)
+        return False, "USGS and EODN files not equal [length]: USGS - {usgs_size} kB,  EODN - {eodn_size} kB".format(usgs_size = os.path.getsize(source_file),
+                                                                                                                     eodn_size = os.path.getsize(eodn_file))
 
+    with open(source_file, 'rb') as fp_source:
+        with open(eodn_file, 'rb') as fp_eodn:
+            tmpSourceData = fp_source.read(settings.VALIDATION_GRANULARITY)
+            tmpEodnData   = fp_eodn.read(settings.VALIDATION_GRANULARITY)
+
+            while tmpSourceData:
+                if tmpSourceData != tmpEodnData:
+                    tmpDiff += settings.VALIDATION_GRANULARITY
+
+                tmpSourceData = fp_source.read(settings.VALIDATION_GRANULARITY)
+                tmpEodnData   = fp_eodn.read(settings.VALIDATION_GRANULARITY)
+
+    os.remove(source_file)
+    os.remove(eodn_file)
+
+    if tmpDiff:
+        return False, "USGS and EODN files not equal [bytewise]: {size.2}kB diff".format(size = tmpDiff / 1024)
+    
     return True, ""
 
 
@@ -264,12 +270,14 @@ def download_eodn(product, dest_file):
     else:
         return False    
 
-
+    
 def UnitTests():
     import history
     global last_reported
 
     last_reported = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW) - datetime.timedelta(minutes = 1)
+    settings.VERBOSE = True
+    settings.DEBUG = True
     log = history.GetHistory()
     print(CreateReport(log))
 

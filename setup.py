@@ -8,8 +8,7 @@ setup(name        = 'eodnharvester',
       author      = "Jeremy Musser",
       scripts = ['app.py', 'reporter.py', 'settings.py', 'search.py', 'auth.py', 'entity.py', 'history.py', 'product.py'],
       install_requires=[
-          "daemon",
-          "futures"
+          "python-daemon",
           ],
       entry_points = {
           'console_scripts': [

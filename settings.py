@@ -72,7 +72,7 @@ UNIS_HOST = "localhost"          # hostname or ip
 UNIS_PORT = 8888                 # port as int
 LoRS = {
     #"duration": 30 * 24,
-    "duration": 1,               # allocation duration in hours int
+    "duration": 24,               # allocation duration in hours int
     "copies":   3,               # replication factor           int
     "depots":   20,              # number of depots             int
     "threads":  10,              # number of threads            int
@@ -88,10 +88,11 @@ LoRS = {
 #                                #
 ##################################
 
-#REPORT_PERIOD = {"days": 1}
-REPORT_PERIOD = { "minutes": 20 }       # timedelta obj
-#REPORT_EMAIL = "dlt@crest.iu.edu"
-REPORT_EMAIL  = "jemusser@umail.iu.edu" # email string
+#REPORT_PERIOD         = {"days": 1}
+REPORT_PERIOD          = { "minutes": 10 }       # timedelta obj
+#REPORT_EMAIL          = "dlt@crest.iu.edu"
+REPORT_EMAIL           = "jemusser@umail.iu.edu" # email string
+VALIDATION_GRANULARITY = 1024
 
 ##################################
 #                                #
