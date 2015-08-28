@@ -6,7 +6,7 @@ import datetime
 
 from logging.handlers import RotatingFileHandler
 
-import settings
+import eodnharvester.settings as settings
 
 
 SYS = "System"
@@ -36,18 +36,6 @@ def GetLogger():
         logger.addHandler(stdout)    
         
     return logger
-
-def GetHistory():
-    log = Record()
-    if os.path.isfile(settings.HISTORY_PATH):
-        try:
-            with open(settings.HISTORY_PATH) as f:
-                log._record = json.loads(f.read())
-        except Exception as exp:
-            log._record = {}
-
-    return log
-
 
 
 class Record(object):
@@ -100,7 +88,3 @@ class Record(object):
                     self._record[product][key] += log._record[product][key]
                 else:
                     self._record[product][key] = log._record[product][key]
-
-    def flush(self):
-        with open(settings.HISTORY_PATH, 'w') as f:
-            f.write(json.dumps(self._record, sort_keys = True, indent = 2, separators = (',', ': ')))

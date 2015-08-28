@@ -5,8 +5,8 @@ import time
 import json
 import datetime
 
-import history
-import settings
+import eodnharvester.history as history
+import eodnharvester.settings as settings
 
 
 

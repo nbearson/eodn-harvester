@@ -88,8 +88,8 @@ LoRS = {
 #                                #
 ##################################
 
-#REPORT_PERIOD         = {"days": 1}
-REPORT_PERIOD          = { "minutes": 10 }       # timedelta obj
+#REPORT_HOUR           = 0
+REPORT_HOUR            = 0 # Hour of day (0-23)
 #REPORT_EMAIL          = "dlt@crest.iu.edu"
 REPORT_EMAIL           = "jemusser@umail.iu.edu" # email string
 VALIDATION_GRANULARITY = 1024

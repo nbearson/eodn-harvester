@@ -9,16 +9,17 @@ import filecmp
 import json
 import os
 
-import settings
-import auth
-import history
+import eodnharvester.settings as settings
+import eodnharvester.auth as auth
+import eodnharvester.history as history
 
 last_reported = datetime.datetime.utcnow()
 
 def CreateReport(report):
-    global last_reported    
+    global last_reported
+    now = datetime.datetime.utcnow()
     
-    if datetime.datetime.utcnow() - last_reported >= datetime.timedelta(**settings.REPORT_PERIOD):
+    if now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and now - last_reported > datetime.timedelta(hours = 12):
         body = write_report(report)
         send_mail(body)
         last_reported = datetime.datetime.utcnow()
@@ -269,19 +270,3 @@ def download_eodn(product, dest_file):
         return True
     else:
         return False    
-
-    
-def UnitTests():
-    import history
-    global last_reported
-
-    last_reported = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW) - datetime.timedelta(minutes = 1)
-    settings.VERBOSE = True
-    settings.DEBUG = True
-    log = history.GetHistory()
-    print(CreateReport(log))
-
-
-
-if __name__ == "__main__":
-    UnitTests()

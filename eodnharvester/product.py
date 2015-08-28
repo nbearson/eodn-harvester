@@ -10,9 +10,9 @@
 import requests
 import json
 
-import history
-import auth
-import settings
+import eodnharvester.history as history
+import eodnharvester.auth as auth
+import eodnharvester.settings as settings
 
 class Product(object):
     def __init__(self, scene, productCode):

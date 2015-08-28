@@ -14,11 +14,11 @@ import requests
 
 from concurrent.futures import ThreadPoolExecutor
 
-import history
-import settings
-import auth
+import eodnharvester.history as history
+import eodnharvester.settings as settings
+import eodnharvester.auth as auth
 
-from entity import Entity
+from eodnharvester.entity import Entity
 
 class Search(object):
     def __init__(self, **kwargs):

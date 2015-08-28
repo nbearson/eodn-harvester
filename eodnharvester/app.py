@@ -18,10 +18,10 @@ import subprocess
 import concurrent.futures
 import json
 
-import history
-import settings
-import reporter
-from search import Search
+import eodnharvester.history as history
+import eodnharvester.settings as settings
+import eodnharvester.reporter as reporter
+from eodnharvester.search import Search
 
 
 window_start = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
@@ -211,7 +211,6 @@ def addMetadata(product):
 
 
 def createProduct(product):
-    hist = history.GetHistory()
     log = history.Record()
     logger = history.GetLogger()
     
@@ -288,8 +287,8 @@ def run():
     global window_end
     logger = history.GetLogger()
     logger.info("Starting harvester....")
-    log = history.GetHistory()
-
+    log = history.Record()
+    
     while True:
         try:
             window_end = datetime.datetime.utcnow()
@@ -306,7 +305,6 @@ def run():
                     log.merge(report)
                             
             log.merge(search.log)
-            log.flush()
             reporter.CreateReport(log)
 
             window_start = new_start

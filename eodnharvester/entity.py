@@ -10,11 +10,11 @@
 import requests
 import json
 
-import history
-import settings
-import auth
+import eodnharvester.history as history
+import eodnharvester.settings as settings
+import eodnharvester.auth as auth
 
-from product import Product
+from eodnharvester.product import Product
 
 class Entity(object):
     def __init__(self, **kwargs):
