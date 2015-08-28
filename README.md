@@ -65,29 +65,29 @@ EODNHarvester also includes a large number of settings in the `eodnharvester/set
                    | to contact USGS before sleeping.
     HARVEST_WINDOW | How often the EODNHarvester will collect scenes.
     WORKSPACE      | The directory to store the files currently being harvested.
-    		   | These files are temporary and removed on harvest completion.
+                   | These files are temporary and removed on harvest completion.
     USGS_HOST      | The url used to contact the USGS.
     USERNAME       | The username used to log in to USGS.
     PASSWORD       | The password used to log in to USGS.
     TIMEOUT        | The amount of time to wait before retrying network connections.
     DATASET_NAME   | The USGS satellite being collected from.
     LOWER_LEFT     | The latitude and longitude coordinates of the lower left
-    		   | corner of the harvested area.
+                   | corner of the harvested area.
     UPPER_RIGHT    | The latitude and longitude coordinates of the upper right
-    		   | corner of the harvested area.
+                   | corner of the harvested area.
     MAX_RESULTS    | The number of scenes harvested in a single pass
-    		   | (Timeouts occur more often above 15 results)
+                   | (Timeouts occur more often above 15 results)
     SORT_ORDER     | The order to recieve results from USGS in.
     NODE           | The type of data being recieved from USGS.
     UNIS_HOST      | The url or ip of the UNIS instance used to store exnode information.
     UNIS_PORT      | The port number of the UNIS instance used to store exnode information.
     LoRS           | Settings for the LoRS upload. (Read the LoRS documentation
-    		   | for more info on these settings).
+                   | for more info on these settings).
     REPORT_HOUR    | What hour of the day the periodic report should be sent out.
     REPORT_EMAIL   | The email to send reports to.
     AUTH_FIELD     | Where to store security information in the exnode.
     AUTH_VALUE     | The token used for the exnode.
 
     VALIDATION_GRANULARITY | Size of chunks to be used when checking
-    			   | files for correctness.
+                           | files for correctness.
     DOWNLOAD_CHUNKSIZE     | Chunk size to use when downloading data from USGS.
