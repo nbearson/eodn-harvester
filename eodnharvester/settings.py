@@ -13,7 +13,6 @@ THREADS        = 10                       # int
 MAX_RECONNECT  = 10                       # int
 HARVEST_WINDOW = {"days": 1}              # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
-HISTORY_PATH   = WORKSPACE + "/hist.json" # directory and filename string
 
 
 
