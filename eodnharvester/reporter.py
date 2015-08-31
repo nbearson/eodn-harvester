@@ -17,7 +17,7 @@ last_reported = datetime.datetime.utcnow()
 
 def CreateReport(report):
     global last_reported
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now()
     
     if now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and now - last_reported > datetime.timedelta(hours = 12):
         body = write_report(report)
