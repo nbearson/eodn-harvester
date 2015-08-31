@@ -242,7 +242,7 @@ def createProduct(product):
         log.error(product.filename, error)
         return log
 
-    if str(errno) == '0' or str(errno) == '1':
+    if str(errno) == '0':
         log.write(product.filename, "complete", True)
     return log
 
