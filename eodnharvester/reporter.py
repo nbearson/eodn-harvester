@@ -123,11 +123,11 @@ def validate_product(product):
     eodn_file    = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_eodn.tar.gz")
     source_file  = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, filename = "validate_source.tar.gz")
 
-    if not download_source(product, source_file):
-        return False, "Failed to download from USGS"
-
     if not download_eodn(product, eodn_file):
         return False, "Failed to download from EODN"
+
+    if not download_source(product, source_file):
+        return False, "Failed to download from USGS"
 
     if os.path.getsize(source_file) != os.path.getsize(eodn_file):
         os.remove(source_file)
