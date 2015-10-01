@@ -15,9 +15,10 @@ import eodnharvester.auth as auth
 import eodnharvester.settings as settings
 
 class Product(object):
-    def __init__(self, scene, productCode):
+    def __init__(self, scene, productCode, filesize):
         self.productCode = productCode
         self.scene = scene
+        self.filesize = filesize
 
     def initialize(self):
         url = "http://{usgs_host}/inventory/json/{request_code}"

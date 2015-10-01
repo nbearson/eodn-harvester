@@ -81,7 +81,7 @@ class Entity(object):
 
 
         for entity in response["data"][0]["downloadOptions"]:
-            product = Product(self.entity_id, entity["downloadCode"])
+            product = Product(self.entity_id, entity["downloadCode"], entity["filesize"])
             self.products.append(product)
         
         auth.logout(self.log)
