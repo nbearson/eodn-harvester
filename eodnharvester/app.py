@@ -225,14 +225,13 @@ def createProduct(product):
     else:
         return log
     
-    errno = lorsUpload(filename, product.basename)
-    if str(errno) != '0' and str(errno) != '1':
+    lorsUpload(filename, product.basename)
+
+    if not addMetadata(product):
         error = "LoRS upload failed - {errno}".format(errno = errno)
         logger.info(error)
         log.error(product.filename, error)
-    else:
-        addMetadata(product)
-
+        
     try:
         logger.info("Removing {product}".format(product = product.filename))
         os.remove(filename)
