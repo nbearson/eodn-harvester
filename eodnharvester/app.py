@@ -285,7 +285,7 @@ def run():
     global window_start
     global window_end
     logger = history.GetLogger()
-    logger.info("Starting harvester....")
+    logger.info("Starting harvester for {name}....".format(name = settings.HARVEST_NAME))
     log = history.Record()
     
     while True:

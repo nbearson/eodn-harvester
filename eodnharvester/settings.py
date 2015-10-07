@@ -6,6 +6,7 @@
 #                                #
 ##################################
 
+HARVEST_NAME   = "Continental US"
 VERBOSE        = False                    # boolean
 DEBUG          = False                    # boolean
 

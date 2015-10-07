@@ -109,7 +109,7 @@ def send_mail(report):
     mail_from = "no-reply@data-logistics.org"
     
     msg = MIMEText(report, 'html')
-    msg['Subject'] = "Daily Harvest Report"
+    msg['Subject'] = "Daily Harvest Report [{name}]".format(name = settings.HARVEST_NAME)
     msg['From']    = mail_from
     msg['To']      = settings.REPORT_EMAIL
 
