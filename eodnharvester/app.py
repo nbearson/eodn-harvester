@@ -69,10 +69,9 @@ def _getUnisDirectory(basename):
     return "/Landsat/{sensor}/{path}/{row}/{year}".format(**directory)
 
 
-def downloadProduct(product, log = None):
+def downloadProduct(product):
     logger = history.GetLogger()
-    if not log:
-        log = Report()
+    log = history.Record()
 
     logger.info("Downloading {name} from USGS".format(name = product.filename))
 
@@ -87,12 +86,12 @@ def downloadProduct(product, log = None):
         error = "Failed to connect to download service - {exp}".format(exp = exp)
         logger.error(error)
         log.error(history.SYS, error)
-        return False
+        return False, log
     except Exception as exp:
         error = "Unknown error while downloading file - {exp}".format(exp = exp)
         logger.error(error)
         log.error(history.SYS, error)
-        return False
+        return False, log
 
     try:
         with open(output_file, 'wb') as f:
@@ -134,7 +133,7 @@ def downloadProduct(product, log = None):
     except Exception as exp:
         logger.error("Unable to calculate download speed")
 
-    return output_file
+    return output_file, log
     
 
 def lorsUpload(filename, basename):
@@ -211,26 +210,23 @@ def addMetadata(product):
 
 
 def createProduct(product):
-    log = history.Record()
     logger = history.GetLogger()
     
     if productExists(product):
         logger.info("Product on record, skipping...")
-        return log
+        return None
 
     if product.initialize():
-        filename = downloadProduct(product, log)
+        filename, log = downloadProduct(product)
         if not filename:
             return log
     else:
-        return log
+        return None
     
     lorsUpload(filename, product.basename)
-
-    if not addMetadata(product):
-        error = "LoRS upload failed - {errno}".format(errno = errno)
-        logger.info(error)
-        log.error(product.filename, error)
+    
+    if addMetadata(product):
+        log.write(product.filename, "complete", True)
         
     try:
         logger.info("Removing {product}".format(product = product.filename))
@@ -239,10 +235,7 @@ def createProduct(product):
         error = "Failed to remove local file - {exp}".format(exp = exp)
         logger.error(error)
         log.error(product.filename, error)
-        return log
-
-    if str(errno) == '0':
-        log.write(product.filename, "complete", True)
+        
     return log
 
 

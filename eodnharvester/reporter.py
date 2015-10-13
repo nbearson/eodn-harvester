@@ -18,6 +18,11 @@ last_reported = datetime.datetime.utcnow()
 def CreateReport(report):
     global last_reported
     now = datetime.datetime.now()
+
+    if settings.DEBUG:
+        body = write_report(report)
+        print(body)
+        return
     
     if now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and now - last_reported > datetime.timedelta(hours = 12):
         body = write_report(report)
@@ -52,22 +57,22 @@ def write_report(report):
         try:
             if key == history.SYS:
                 continue
-                
+            
             ts = datetime.datetime.strptime(product["ts"], "%Y-%m-%d %H:%M:%S")
             if ts > last_reported:
-                harvested_size += int(product["filesize"])
-                size = float(product["filesize"]) / float(2**20)
+                if "complete" in product:
+                    harvested_size += int(product["filesize"])
+                    size = float(product["filesize"]) / float(2**20)
                 
-                body += "<tr><td>{name}</td><td>{size:.2f}</td><td>{speed}</td><td>{ts}</td></tr>".format(name  = key,
-                                                                                                          size  = size,
-                                                                                                          speed = product["download_speed"],
-                                                                                                          ts    = product["ts"])
-
-            if "errors" in product:
-                for error in product["errors"]:
-                    for err_ts, value in error.items():
-                        ts = datetime.datetime.strptime(err_ts, "%Y-%m-%d %H:%M:%S")
-                        if ts > last_reported:
+                    body += "<tr><td>{name}</td><td>{size:.2f}</td><td>{speed}</td><td>{ts}</td></tr>".format(name  = key,
+                                                                                                              size  = size,
+                                                                                                              speed = product["download_speed"],
+                                                                                                              ts    = product["ts"])
+            
+                if "errors" in product:
+                    for error in product["errors"]:
+                        for err_ts, value in error.items():
+                            ts = datetime.datetime.strptime(err_ts, "%Y-%m-%d %H:%M:%S")
                             if key not in error_list:
                                 error_list[key] = []
                             error_list[key].append(value)

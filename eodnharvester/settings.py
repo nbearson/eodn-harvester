@@ -6,7 +6,7 @@
 #                                #
 ##################################
 
-HARVEST_NAME   = "Continental US"
+HARVEST_NAME   = "Test"
 VERBOSE        = False                    # boolean
 DEBUG          = False                    # boolean
 
@@ -72,8 +72,8 @@ UNIS_HOST = "localhost"          # hostname or ip
 UNIS_PORT = 8888                 # port as int
 LoRS = {
     #"duration": 30 * 24,
-    "duration": 24,               # allocation duration in hours int
-    "copies":   3,               # replication factor           int
+    "duration": 1,               # allocation duration in hours int
+    "copies":   1,               # replication factor           int
     "depots":   20,              # number of depots             int
     "threads":  10,              # number of threads            int
     "size":     "10m",           # size of allocation           string
@@ -89,7 +89,7 @@ LoRS = {
 ##################################
 
 #REPORT_HOUR           = 0
-REPORT_HOUR            = 0 # Hour of day (0-23)
+REPORT_HOUR            = 14 # Hour of day (0-23)
 #REPORT_EMAIL          = "dlt@crest.iu.edu"
 REPORT_EMAIL           = "jemusser@umail.iu.edu" # email string
 VALIDATION_GRANULARITY = 1024
