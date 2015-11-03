@@ -25,14 +25,16 @@ def login(log = None):
     retry = 1
     
     logger.info("Logging into USGS")
-
+    
     while retry:
         try:
-            response = requests.get(url, params = { 'jsonRequest': json.dumps( { "username": settings.USERNAME, "password": settings.PASSWORD }) }, timeout = settings.TIMEOUT)
+            response = requests.post(url, data = { 'jsonRequest': json.dumps({ "username": settings.USERNAME,
+                                                                               "password": settings.PASSWORD }) },
+                                     timeout = settings.TIMEOUT)
             response = response.json()
 
             if response["errorCode"]:
-                error = "Error from USGS while logging in - {err}".format(err = response["error"])
+                error = "Error from USGS while logging in - [{code}]{err}".format(code = response["errorCode"], err = response["error"])
                 logger.error(error)
                 log.error(history.SYS, error)
             else:
@@ -72,16 +74,16 @@ def logout(log = None):
 
     response = ""
     url = "https://{usgs_host}/inventory/json/{request_code}".format(usgs_host = settings.USGS_HOST,
-                                                           request_code = "login")
+                                                           request_code = "logout")
     
     logger.info("Logging out of USGS")
 
     try:
-        response = requests.get(url, params = { 'jsonRequest': json.dumps( { "username": settings.USERNAME, "password": settings.PASSWORD }) }, timeout = settings.TIMEOUT)
+        response = requests.post(url, data = { 'jsonRequest': json.dumps({ "apiKey": _apiKey }) }, timeout = settings.TIMEOUT)
         response = response.json()
         
         if response["errorCode"]:
-            error = "Error from USGS while logging in - {err}".format(err = response["error"])
+            error = "Error from USGS while logging out - {err}".format(err = response["error"])
             logger.error(error)
             log.error(history.SYS, error)
     
@@ -101,7 +103,7 @@ def logout(log = None):
         log.error(history.SYS, error)
         return False
     
-    _apiKey = response["data"]
+    _apiKey = ""
     
     return True
     

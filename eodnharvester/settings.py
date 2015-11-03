@@ -25,8 +25,8 @@ WORKSPACE      = "/data/jemusser"         # directory string
 ##################################
 
 USGS_HOST = "earthexplorer.usgs.gov" # hostname or ip
-USERNAME  = "prblackwell"            # string
-PASSWORD  = "g00d4USGS"              # string
+USERNAME  = "indianadlt"             # string
+PASSWORD  = "indiana2014"            # string
 TIMEOUT   = 40                       # int seconds
 
 
