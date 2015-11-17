@@ -302,6 +302,7 @@ def run():
             window_start = new_start
             delay_time = datetime.datetime.utcnow() - new_start
             if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
+                auth.logout(log, force = True)
                 remaining_time = datetime.timedelta(**settings.HARVEST_WINDOW) - delay_time
                 remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
                 logger.info("--Sleeping for {s} seconds...".format(s = remaining_seconds))
@@ -312,7 +313,6 @@ def run():
         
 
 def main():
-
     parser = argparse.ArgumentParser(description = "Harvest data for EODN")
     parser.add_argument('-v', '--verbose', action = 'store_true', help = "Makes the output verbose")
     parser.add_argument('-D', '--debug', action = 'store_true', help = "Includes debugging messages in output")

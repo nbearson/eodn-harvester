@@ -11,10 +11,15 @@ import eodnharvester.settings as settings
 
 
 _apiKey = ""
+_aquired = None
 
 
 def login(log = None):
     global _apiKey
+    global _aquired
+    if _apiKey and _aquired + datetime.timedelta(hours = 1) > datetime.datetime.utcnow():
+        return _apiKey
+    
     logger = history.GetLogger()
     if not log:
         log = history.Record()
@@ -32,7 +37,7 @@ def login(log = None):
                                                                                "password": settings.PASSWORD }) },
                                      timeout = settings.TIMEOUT)
             response = response.json()
-
+            
             if response["errorCode"]:
                 error = "Error from USGS while logging in - [{code}]{err}".format(code = response["errorCode"], err = response["error"])
                 logger.error(error)
@@ -62,12 +67,18 @@ def login(log = None):
             time.sleep(10) # 10 seconds
     
     _apiKey = response["data"]
+    _aquired = datetime.datetime.utcnow()
     
     return _apiKey
 
 
-def logout(log = None):
+def logout(log = None, force = False):
     global _apiKey
+    global _aquired
+    
+    if not force and _aquired + datetime.timedelta(hours = 1) > datetime.datetime.utcnow():
+        return
+        
     logger = history.GetLogger()
     if not log:
         log = history.Record()

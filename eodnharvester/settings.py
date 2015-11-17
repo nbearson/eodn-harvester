@@ -12,7 +12,7 @@ DEBUG          = False                    # boolean
 
 THREADS        = 1                        # int
 MAX_RECONNECT  = 10                       # int
-HARVEST_WINDOW = {"minutes": 15 }         # timedelta obj
+HARVEST_WINDOW = {"days": 1 }         # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
 
 
@@ -72,7 +72,7 @@ UNIS_HOST = "localhost"          # hostname or ip
 UNIS_PORT = 8888                 # port as int
 LoRS = {
     #"duration": 30 * 24,
-    "duration": 1,               # allocation duration in hours int
+    "duration": 10,               # allocation duration in hours int
     "copies":   1,               # replication factor           int
     "depots":   20,              # number of depots             int
     "threads":  10,              # number of threads            int
