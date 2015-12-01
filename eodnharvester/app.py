@@ -21,6 +21,7 @@ import json
 import eodnharvester.history as history
 import eodnharvester.settings as settings
 import eodnharvester.reporter as reporter
+import eodnharvester.auth as auth
 from eodnharvester.search import Search
 
 
