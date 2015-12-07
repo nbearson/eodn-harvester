@@ -12,7 +12,7 @@ DEBUG          = False                    # boolean
 
 THREADS        = 1                        # int
 MAX_RECONNECT  = 10                       # int
-HARVEST_WINDOW = {"days": 1 }         # timedelta obj
+HARVEST_WINDOW = {"minutes": 15 }         # timedelta obj
 WORKSPACE      = "/data/jemusser"         # directory string
 
 
@@ -32,7 +32,7 @@ TIMEOUT   = 40                       # int seconds
 
 ##################################
 #                                #
-#        Search Settings         #
+#    Default Search Settings     #
 #                                #
 ##################################
 
