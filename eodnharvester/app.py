@@ -31,13 +31,14 @@ AUTH_VALUE = settings.AUTH_VALUE
 
 def productExists(product):
     logger = history.GetLogger()
-    url = "http://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(host  = settings.UNIS_HOST,
-                                                                                                   port  = settings.UNIS_PORT,
-                                                                                                   scene = product.scene,
-                                                                                                   code  = product.productCode)
+    url = "{protocol}://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                                                         host  = settings.UNIS_HOST,
+                                                                                                         port  = settings.UNIS_PORT,
+                                                                                                         scene = product.scene,
+                                                                                                         code  = product.productCode)
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
@@ -173,11 +174,12 @@ def lorsUpload(filename, basename):
     
 def addMetadata(product):
     logger = history.GetLogger()
-    url = "http://{host}:{port}/exnodes?name={name}".format(host = settings.UNIS_HOST,
-                                                     port = settings.UNIS_PORT,
-                                                     name = product.filename)
+    url = "{protocol}://{host}:{port}/exnodes?name={name}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                  host = settings.UNIS_HOST,
+                                                                  port = settings.UNIS_PORT,
+                                                                  name = product.filename)
     try:
-        response = requests.get(url)
+        response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()[0]
         tmpId    = response["id"]
         
@@ -188,10 +190,11 @@ def addMetadata(product):
         response["metadata"]["scene"] = product.scene
         response[AUTH_FIELD] = AUTH_VALUE
         
-        url = "http://{host}:{port}/exnodes/{uid}".format(host = settings.UNIS_HOST,
-                                                          port = settings.UNIS_PORT,
-                                                          uid  = tmpId)
-        response = requests.put(url, data = json.dumps(response))
+        url = "{protocol}://{host}:{port}/exnodes/{uid}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                host = settings.UNIS_HOST,
+                                                                port = settings.UNIS_PORT,
+                                                                uid  = tmpId)
+        response = requests.put(url, data = json.dumps(response), cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
@@ -286,8 +289,9 @@ def run():
                         log.merge(report)
                             
                 log.merge(search.log)
-                reporter.CreateReport(log)
                 
+            reporter.CreateReport(log)
+            
             window_start = new_start
             delay_time = datetime.datetime.utcnow() - new_start
             if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
@@ -309,7 +313,7 @@ def config():
         invalid = True
         
         while True:
-            val = input(prompt)
+            val = raw_input(prompt)
             if val == "exit" and use_exit:
                 return None
             try:

@@ -239,12 +239,13 @@ def download_source(product, dest_file):
 
 def download_eodn(product, dest_file):
     logger = history.GetLogger()
-    url = "http://{host}:{port}/exnodes?name={product}".format(host    = settings.UNIS_HOST,
-                                                               port    = settings.UNIS_PORT,
-                                                               product = product)
+    url = "{protocol}://{host}:{port}/exnodes?name={product}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                     host    = settings.UNIS_HOST,
+                                                                     port    = settings.UNIS_PORT,
+                                                                     product = product)
     
     try:
-        response = requests.get(url)
+        response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()[0]
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)

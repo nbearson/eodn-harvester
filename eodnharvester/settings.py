@@ -1,4 +1,4 @@
-
+import os
 
 ##################################
 #                                #
@@ -68,7 +68,9 @@ DOWNLOAD_CHUNKSIZE = 8192 # int
 ##################################
 
 #UNIS_HOST = "dev.incntre.iu.edu"
+#UNIS_HOST = "dlt.crest.iu.edu"
 UNIS_HOST = "localhost"          # hostname or ip
+#UNIS_PORT = 9001
 UNIS_PORT = 8888                 # port as int
 LoRS = {
     #"duration": 30 * 24,
@@ -99,6 +101,13 @@ VALIDATION_GRANULARITY = 1024
 #       Auth Related settings    #
 #                                #
 ##################################
+HARVESTER_ROOT = os.path.dirname(os.path.abspath(__file__)) + os.sep
+
+USE_SSL = False
+SSL_OPTIONS = {
+    "key": HARVESTER_ROOT + "sec/dlt-client.pem",
+    "cert": HARVESTER_ROOT + "sec/dlt-client.pem"
+}
 
 AUTH_FIELD = "secToken"
 AUTH_VALUE = ["landsat"]

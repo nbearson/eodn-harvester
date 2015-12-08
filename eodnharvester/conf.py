@@ -61,6 +61,7 @@ class HarvesterConfigure(object):
         try:
             if not self._dirty:
                 self._cache = self._getService()
+                self._update()
         except NoValueError as exp:
             self.log.warn("Could not find service - {exp}".format(exp = exp))
             if not self._node:
@@ -83,10 +84,11 @@ class HarvesterConfigure(object):
     def _update(self):
         try:
             headers = { 'Content-Type': 'application/perfsonar+json' }
-            url = "http://{host}:{port}/services/{sid}".format(host = settings.UNIS_HOST,
-                                                               port = settings.UNIS_PORT,
-                                                               sid  = self._cache["id"])
-            response = requests.put(url, data = json.dumps(self._cache), headers = headers)
+            url = "{protocol}://{host}:{port}/services/{sid}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                     host = settings.UNIS_HOST,
+                                                                     port = settings.UNIS_PORT,
+                                                                     sid  = self._cache["id"])
+            response = requests.put(url, data = json.dumps(self._cache), headers = headers, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         except requests.exceptions.RequestException as exp:
             error = "Failed to connect to UNIS - {exp}".format(exp = exp)
             self.log.error(error)
@@ -121,12 +123,13 @@ class HarvesterConfigure(object):
         
     
     def _getNode(self):
-        url = "http://{host}:{port}/nodes?urn={urn}".format(host = settings.UNIS_HOST,
-                                                            port = settings.UNIS_PORT,
-                                                            urn  = self._urn)
+        url = "{protocol}://{host}:{port}/nodes?urn={urn}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                  host = settings.UNIS_HOST,
+                                                                  port = settings.UNIS_PORT,
+                                                                  urn  = self._urn)
         
         try:
-            response = requests.get(url)
+            response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
             response = response.json()
         except requests.exceptions.RequestException as exp:
             raise requests.exceptions.HTTPError(exp)
@@ -141,15 +144,16 @@ class HarvesterConfigure(object):
         return response[0]["selfRef"]
     
     def _createNode(self):
-        url = "http://{host}:{port}/nodes".format(host = settings.UNIS_HOST,
-                                                  port = settings.UNIS_PORT)
+        url = "{protocol}://{host}:{port}/nodes".format(protocol = "https" if settings.USE_SSL else "http",
+                                                        host = settings.UNIS_HOST,
+                                                        port = settings.UNIS_PORT)
         
         node = {
             "name": self._hostname,
             "urn": self._urn,
         }
         try:
-            response = requests.post(url, data = json.dumps(node))
+            response = requests.post(url, data = json.dumps(node), cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
             response = response.json()
         except requests.exceptions.RequestException as exp:
             raise requests.exceptions.HTTPError(exp)
@@ -161,11 +165,12 @@ class HarvesterConfigure(object):
         return response["selfRef"]
     
     def _getService(self):
-        url = "http://{host}:{port}/services?serviceType=eodn:tools:harvester&runningOn.href={href}".format(host = settings.UNIS_HOST,
-                                                                                                            port = settings.UNIS_PORT,
-                                                                                                            href = self._node)
+        url = "{protocol}://{host}:{port}/services?serviceType=eodn:tools:harvester&runningOn.href={href}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                                                                  host = settings.UNIS_HOST,
+                                                                                                                  port = settings.UNIS_PORT,
+                                                                                                                  href = self._node)
         try:
-            response = requests.get(url)
+            response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
             response = response.json()
         except requests.exceptions.RequestException as exp:
             raise requests.exceptions.HTTPError(exp)
@@ -178,14 +183,16 @@ class HarvesterConfigure(object):
             raise NoValueError("No service found")
         
         return response[0]
-        
+    
+    
     def _createService(self):
         service = self._createProxyService()
-        url = "http://{host}:{port}/services".format(host = settings.UNIS_HOST,
-                                                     port = settings.UNIS_PORT)
+        url = "{protocol}://{host}:{port}/services".format(protocol = "https" if settings.USE_SSL else "http",
+                                                           host = settings.UNIS_HOST,
+                                                           port = settings.UNIS_PORT)
         
         try:
-            response = requests.post(url, data = json.dumps(service))
+            response = requests.post(url, data = json.dumps(service), cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
             response = response.json()
         except requests.exceptions.RequestException as exp:
             raise requests.exceptions.HTTPError(exp)
