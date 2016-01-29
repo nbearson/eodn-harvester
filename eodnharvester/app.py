@@ -441,7 +441,11 @@ def main():
     parser.add_argument('-D', '--debug', action = 'store_true', help = "Includes debugging messages in output")
     parser.add_argument('-d', '--daemon', action = 'store_true', help = "Indicates that the process should be run as a daemon")
     args = parser.parse_args()
-
+    
+    if not os.path.exists(settings.WORKSPACE):
+        os.makedirs(settings.WORKSPACE)
+        os.makedirs("{ws}/log".format(ws = settings.WORKSPACE))
+    
     if args.verbose:
         settings.VERBOSE = True
     

@@ -13,7 +13,7 @@ DEBUG          = False                    # boolean
 THREADS        = 1                        # int
 MAX_RECONNECT  = 10                       # int
 HARVEST_WINDOW = {"minutes": 15 }         # timedelta obj
-WORKSPACE      = "/data/jemusser"         # directory string
+WORKSPACE      = "/data"         # directory string
 
 
 
