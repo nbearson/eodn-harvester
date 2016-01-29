@@ -52,6 +52,10 @@ By default, the EODNHarvester runs as a standard script, by passing the `-d` fla
 
     eodnharvesterd -d
 
+To set up a new configuration for EODNHarvester, run with the -c flag and follow the instructions in the interface.
+
+    eodnharvesterd -c
+
 
 ## Settings
 
