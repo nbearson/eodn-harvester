@@ -23,22 +23,22 @@ import eodnharvester.settings as settings
 import eodnharvester.reporter as reporter
 import eodnharvester.auth as auth
 from eodnharvester.search import Search
+from eodnharvester.conf import HarvesterConfigure
 
 
-window_start = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
-window_end = datetime.datetime.utcnow()
 AUTH_FIELD = settings.AUTH_FIELD
 AUTH_VALUE = settings.AUTH_VALUE
 
 def productExists(product):
     logger = history.GetLogger()
-    url = "http://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(host  = settings.UNIS_HOST,
-                                                                                                   port  = settings.UNIS_PORT,
-                                                                                                   scene = product.scene,
-                                                                                                   code  = product.productCode)
+    url = "{protocol}://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                                                         host  = settings.UNIS_HOST,
+                                                                                                         port  = settings.UNIS_PORT,
+                                                                                                         scene = product.scene,
+                                                                                                         code  = product.productCode)
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
@@ -174,11 +174,12 @@ def lorsUpload(filename, basename):
     
 def addMetadata(product):
     logger = history.GetLogger()
-    url = "http://{host}:{port}/exnodes?name={name}".format(host = settings.UNIS_HOST,
-                                                     port = settings.UNIS_PORT,
-                                                     name = product.filename)
+    url = "{protocol}://{host}:{port}/exnodes?name={name}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                  host = settings.UNIS_HOST,
+                                                                  port = settings.UNIS_PORT,
+                                                                  name = product.filename)
     try:
-        response = requests.get(url)
+        response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()[0]
         tmpId    = response["id"]
         
@@ -189,10 +190,11 @@ def addMetadata(product):
         response["metadata"]["scene"] = product.scene
         response[AUTH_FIELD] = AUTH_VALUE
         
-        url = "http://{host}:{port}/exnodes/{uid}".format(host = settings.UNIS_HOST,
-                                                          port = settings.UNIS_PORT,
-                                                          uid  = tmpId)
-        response = requests.put(url, data = json.dumps(response))
+        url = "{protocol}://{host}:{port}/exnodes/{uid}".format(protocol = "https" if settings.USE_SSL else "http",
+                                                                host = settings.UNIS_HOST,
+                                                                port = settings.UNIS_PORT,
+                                                                uid  = tmpId)
+        response = requests.put(url, data = json.dumps(response), cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
         response = response.json()
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
@@ -258,48 +260,38 @@ def harvest(scene):
     return log
 
 
-
-
-def createSearchParams():
-    global window_start
-    global window_end
-    result = {}
-    result["datasetName"] = settings.DATASET_NAME
-    result["lowerLeft"]   = settings.LOWER_LEFT
-    result["upperRight"]  = settings.UPPER_RIGHT
-    result["startDate"]   = window_start.strftime("%Y-%m-%dT%H:%M:%SZ")
-    result["endDate"]     = window_end.strftime("%Y-%m-%dT%H:%M:%SZ")
-    result["maxResults"]  = settings.MAX_RESULTS
-    result["sortOrder"]   = settings.SORT_ORDER
-    result["node"]        = settings.NODE
-    
-    return result
-
 def run():
-    global window_start
-    global window_end
     logger = history.GetLogger()
     logger.info("Starting harvester for {name}....".format(name = settings.HARVEST_NAME))
     log = history.Record()
+    
+    window_start = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
+    window_end = datetime.datetime.utcnow()
+    configManager = HarvesterConfigure()
     
     while True:
         try:
             window_end = datetime.datetime.utcnow()
             new_start = window_end
-            search = Search(**createSearchParams())
-            
-            if settings.THREADS > 1:
-                with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
-                    for report in executor.map(harvest, search):
+            for config in configManager.get():
+                config["startDate"] = window_start.strftime("%Y-%m-%dT%H:%M:%SZ")
+                config["endDate"]   = window_end.strftime("%Y-%m-%dT%H:%M:%SZ")
+                config["maxResults"]  = settings.MAX_RESULTS
+                
+                search = Search(**config)
+                if settings.THREADS > 1:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
+                        for report in executor.map(harvest, search):
+                            log.merge(report)
+                else:
+                    for scene in search:
+                        report = harvest(scene)
                         log.merge(report)
-            else:
-                for scene in search:
-                    report = harvest(scene)
-                    log.merge(report)
                             
-            log.merge(search.log)
+                log.merge(search.log)
+                
             reporter.CreateReport(log)
-
+            
             window_start = new_start
             delay_time = datetime.datetime.utcnow() - new_start
             if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
@@ -308,25 +300,161 @@ def run():
                 remaining_seconds = remaining_time.seconds + (remaining_time.days * 24 * 60 * 60)
                 logger.info("--Sleeping for {s} seconds...".format(s = remaining_seconds))
                 time.sleep(remaining_seconds)
+                
         except Exception as exp:
             logger.info("Critical failure: {exp} - Restarting harvest".format(exp = exp))
     
         
 
+def config():
+    configManager = HarvesterConfigure()
+    
+    def cinput(prompt, cls = None, use_exit = True, default = ""):
+        invalid = True
+        
+        while True:
+            val = raw_input(prompt)
+            if val == "exit" and use_exit:
+                return None
+            try:
+                if not val:
+                    if default:
+                        return default
+                    else:
+                        raise Exception("No value given")
+                if type(cls) is list:
+                    if str(val) not in cls:
+                        raise Exception("Value not in list")
+                elif cls == "float":
+                    val = float(val)
+                elif cls == "int":
+                    val = int(val)
+                elif cls == "str":
+                    val = str(val)
+            except Exception as exp:
+                print("Invalid input, please check your entry")
+                continue
+            break
+        return val
+    
+    def get_action():
+        return cinput("Choose an action [ list | add | edit | remove | exit ]: ", ["list", "add", "edit", "remove", "exit"], False)
+    
+    def list_configs():
+        configs = configManager.get()
+        if not configs:
+            return None
+        
+        for index in range(len(configs)):
+            print("\n[{index}]".format(index = index + 1))
+            print(json.dumps(configs[index], indent = 2))
+            
+        return configs
+    
+    def choose_config():
+        while True:
+            configs = list_configs()
+            if not configs:
+                return None
+            
+            val = cinput("Please choose a configuration to modify [1-{index}]: ".format(index = len(configs)), "int")
+            if not val:
+                return None
+            
+            val = val - 1
+            if val < len(configs) and val >= 0:
+                return val
+            
+            
+    def create_config():
+        print("Please enter the configuration values")
+        dataset = cinput("Dataset Name [Landsat_8]: ", "str", default = "Landsat_8")
+        if not dataset:
+            return None
+        
+        LLlat   = cinput("Lower left Latitude: ", "float")
+        if not LLlat:
+            return None
+        
+        LLlon = cinput("Lower left Longitude: ", "float")
+        if not LLlon:
+            return None
+        
+        URlat = cinput("Upper right Latitude: ", "float")
+        if not URlat:
+            return None
+        
+        URlon = cinput("Upper right Longitude: ", "float")
+        if not URlon:
+            return None
+
+        sort = cinput("Sort order [ASC|DESC]: ", ["ASC", "DESC"])
+        if not sort:
+            return None
+        
+        node = cinput("Node name [EE]: ", "str", default = "EE")
+        if not node:
+            return None
+        
+        config = {}
+        config["datasetName"] = dataset
+        if not config["datasetName"]:
+            config["datasetName"] = "Landsat_8"
+        config["lowerLeft"] = {}
+        config["lowerLeft"]["latitude"] = LLlat
+        config["lowerLeft"]["longitude"] = LLlon
+        config["upperRight"] = {}
+        config["upperRight"]["latitude"] = URlat
+        config["upperRight"]["longitude"] = URlon
+        config["sortOrder"] = sort
+        config["node"] = node
+        if not config["node"]:
+            config["node"] = "EE"
+            
+        return config
+    
+    action = ""
+    while action != "exit":
+        action = get_action()
+        if action == "list":
+            list_configs()
+        if action == "add":
+            config = create_config()
+            if config:
+                configManager.add(config)
+        elif action == "edit":
+            cid = choose_config()
+            if cid is not None:
+                config = create_config()
+                if config:
+                    configManager.edit(cid, config)
+        elif action == "remove":
+            cid = choose_config()
+            if cid is not None:
+                configManager.remove(cid)
+
+            
 def main():
     parser = argparse.ArgumentParser(description = "Harvest data for EODN")
+    parser.add_argument('-c', '--configure', action = 'store_true', help = "Run in configuration mode")
     parser.add_argument('-v', '--verbose', action = 'store_true', help = "Makes the output verbose")
     parser.add_argument('-D', '--debug', action = 'store_true', help = "Includes debugging messages in output")
     parser.add_argument('-d', '--daemon', action = 'store_true', help = "Indicates that the process should be run as a daemon")
     args = parser.parse_args()
-
+    
+    if not os.path.exists(settings.WORKSPACE):
+        os.makedirs(settings.WORKSPACE)
+        os.makedirs("{ws}/log".format(ws = settings.WORKSPACE))
+    
     if args.verbose:
         settings.VERBOSE = True
     
     if args.debug:
         settings.DEBUG = True
 
-    if args.daemon:
+    if args.configure:
+        config()
+    elif args.daemon:
         with daemon.DaemonContext():
             run()
     else:

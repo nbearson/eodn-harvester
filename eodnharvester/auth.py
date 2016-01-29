@@ -49,7 +49,7 @@ def login(log = None):
             logger.error(error)
             log.error(history.SYS, error)
         except ValueError as exp:
-            error = "Error while decoding response - {exp}".format(exp = exp)
+            error = "Error while decoding response - {exp} - {response}".format(exp = exp, response = response.text)
             logger.error(error)
             log.error(history.SYS, error)
         except Exception as exp:
