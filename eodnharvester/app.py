@@ -26,6 +26,9 @@ from eodnharvester.search import Search
 from eodnharvester.conf import HarvesterConfigure
 
 
+if not raw_input:
+    raw_input = input
+
 AUTH_FIELD = settings.AUTH_FIELD
 AUTH_VALUE = settings.AUTH_VALUE
 
@@ -444,6 +447,8 @@ def main():
     
     if not os.path.exists(settings.WORKSPACE):
         os.makedirs(settings.WORKSPACE)
+
+    if not os.path.exists("{ws}/log".format(ws = settings.WORKSPACE)):
         os.makedirs("{ws}/log".format(ws = settings.WORKSPACE))
     
     if args.verbose:
