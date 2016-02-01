@@ -26,8 +26,6 @@ from eodnharvester.search import Search
 from eodnharvester.conf import HarvesterConfigure
 
 
-if not raw_input:
-    raw_input = input
 
 AUTH_FIELD = settings.AUTH_FIELD
 AUTH_VALUE = settings.AUTH_VALUE
@@ -316,7 +314,10 @@ def config():
         invalid = True
         
         while True:
-            val = raw_input(prompt)
+            try:
+                val = raw_input(prompt)
+            except Exception as e:
+                val = input(prompt)
             if val == "exit" and use_exit:
                 return None
             try:
