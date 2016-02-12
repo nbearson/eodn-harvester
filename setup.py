@@ -9,7 +9,10 @@ setup(name        = 'eodnharvester',
       packages = ['eodnharvester', 'eodnharvester.sec'],
       package_data = { 'eodnharvester.sec': ['*.pem'] },
       include_package_data = True,
-      install_requires=["python-daemon", "requests"],
+      install_requires=[
+          "python-daemon",
+          "requests"
+      ],
       entry_points = {
           'console_scripts': [
               'eodnharvesterd = eodnharvester.app:main',

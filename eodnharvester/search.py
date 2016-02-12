@@ -94,6 +94,8 @@ class Search(object):
                                                                                        lastRecord  = response["data"]["lastRecord"]))
         
         for entity in response["data"]["results"]:
+            entity["datasetName"] = self.search["datasetName"]
+            entity["node"]        = self.search["node"]
             tmpEntity = Entity(**entity)
             self.entities.append(tmpEntity)
             

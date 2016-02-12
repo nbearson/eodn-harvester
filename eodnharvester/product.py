@@ -15,10 +15,11 @@ import eodnharvester.auth as auth
 import eodnharvester.settings as settings
 
 class Product(object):
-    def __init__(self, scene, productCode, filesize):
+    def __init__(self, scene, productCode, filesize, metadata):
         self.productCode = productCode
         self.scene = scene
         self.filesize = filesize
+        self.metadata = metadata
 
     def initialize(self):
         url = "http://{usgs_host}/inventory/json/{request_code}"
@@ -27,9 +28,9 @@ class Product(object):
         
         logger.info("Getting download url for {product}".format(product = self.productCode))
         downloadRequest = {
-            "datasetName": settings.DATASET_NAME,
+            "datasetName": self.metadata["datasetName"],
             "apiKey":      apiKey,
-            "node":        settings.NODE,
+            "node":        self.metadata["datasetName"],
             "entityIds":   [self.scene],
             "products":    [self.productCode]
         }

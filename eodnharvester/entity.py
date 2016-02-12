@@ -35,6 +35,8 @@ class Entity(object):
         self.metadata["upperRightCoordinate"] = kwargs.get("upperRightCoordinate", None)
         self.metadata["upperLeftCoordinate"]  = kwargs.get("upperLeftCoordinate", None)
         self.metadata["lowerRightCoordinate"] = kwargs.get("lowerRightCoordinate", None)
+        self.metadata["datasetName"] = kwargs.get("datasetName", settings.DATASET_NAME)
+        self.metadata["node"]        = kwargs.get("node", settings.NODE)
 
 
     def GetProducts(self):
@@ -46,14 +48,14 @@ class Entity(object):
         url = "http://{usgs_host}/inventory/json/{request_code}"
 
         sceneRequest = {
-            "datasetName": settings.DATASET_NAME,
+            "datasetName": self.metadata["datasetName"],
             "apiKey":      apiKey,
-            "node":        settings.NODE,
+            "node":        self.metadata["node"],
             "entityIds":   [self.entity_id]
         }
         scene_url = url.format(usgs_host    = settings.USGS_HOST,
                                request_code = "downloadoptions")
-
+        
         try:
             logger.info("Getting information on {product} products".format(product = self.entity_id))
             logger.debug("{url}?jsonRequest={params}".format(url = scene_url, params = json.dumps(sceneRequest)))
@@ -78,12 +80,12 @@ class Entity(object):
             self.log.error(self.entity_id, error)
             auth.logout(self.log)
             return False
-
-
-        for entity in response["data"][0]["downloadOptions"]:
-            product = Product(self.entity_id, entity["downloadCode"], entity["filesize"])
-            self.products.append(product)
         
+        
+        for entity in response["data"][0]["downloadOptions"]:
+            product = Product(self.entity_id, entity["downloadCode"], entity["filesize"], self.metadata)
+            self.products.append(product)
+            
         auth.logout(self.log)
         self.populated = True
         return True
