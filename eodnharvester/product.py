@@ -30,7 +30,7 @@ class Product(object):
         downloadRequest = {
             "datasetName": self.metadata["datasetName"],
             "apiKey":      apiKey,
-            "node":        self.metadata["datasetName"],
+            "node":        self.metadata["node"],
             "entityIds":   [self.scene],
             "products":    [self.productCode]
         }
