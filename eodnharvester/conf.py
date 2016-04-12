@@ -229,7 +229,7 @@ class HarvesterConfigure(object):
 
         if fqdn != self._hostname:
             domain = fqdn.replace(self._hostname + ".", "")
-            node = self._hosthost
+            node = self._hostname
         else:
             try:
                 default_ip, default_iface = get_default_gateway_linux()

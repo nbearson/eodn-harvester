@@ -6,11 +6,11 @@ import os
 #                                #
 ##################################
 
-HARVEST_NAME   = "Test"
+HARVEST_NAME   = ""
 VERBOSE        = False                    # boolean
 DEBUG          = False                    # boolean
 
-THREADS        = 10                       # int
+THREADS        = 1                        # int
 MAX_RECONNECT  = 10                       # int
 HARVEST_WINDOW = {"minutes": 15 }         # timedelta obj
 WORKSPACE      = "/data"         # directory string
