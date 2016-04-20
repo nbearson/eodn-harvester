@@ -87,7 +87,7 @@ LoRS = {
 ##################################
 
 REPORT_HOUR            = 0 # Hour of day (0-23)
-REPORT_EMAIL          = "dlt@crest.iu.edu"
+REPORT_EMAIL          = "dlt-news@crest.iu.edu"
 VALIDATION_GRANULARITY = 1024
 
 ##################################
