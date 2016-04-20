@@ -12,7 +12,7 @@ DEBUG          = False                    # boolean
 
 THREADS        = 1                        # int
 MAX_RECONNECT  = 10                       # int
-HARVEST_WINDOW = {"days": 5 }         # timedelta obj
+HARVEST_WINDOW = {"minutes": 5 }         # timedelta obj
 WORKSPACE      = "/data"         # directory string
 
 
@@ -67,7 +67,6 @@ DOWNLOAD_CHUNKSIZE = 8192 # int
 #                                #
 ##################################
 
-#UNIS_HOST = "localhost"
 UNIS_HOST = "unis.crest.iu.edu"          # hostname or ip
 UNIS_PORT = 8890                         # port as int
 LoRS = {
@@ -88,8 +87,7 @@ LoRS = {
 ##################################
 
 REPORT_HOUR            = 0 # Hour of day (0-23)
-REPORT_EMAIL = "jemusser@umail.iu.edu"
-#REPORT_EMAIL          = "dlt@crest.iu.edu"
+REPORT_EMAIL          = "dlt@crest.iu.edu"
 VALIDATION_GRANULARITY = 1024
 
 ##################################
