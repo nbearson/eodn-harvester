@@ -196,7 +196,6 @@ def addMetadata(product):
                                                                 port = settings.UNIS_PORT,
                                                                 uid  = tmpId)
         response = requests.put(url, data = json.dumps(response), cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
-        response = response.json()
     except requests.exceptions.RequestException as exp:
         error = "Failed to connect to UNIS - {exp}".format(exp = exp)
         logger.error(error)
