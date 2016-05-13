@@ -22,14 +22,14 @@ def CreateReport(report):
     if settings.DEBUG:
         body = write_report(report)
         print(body)
-        return
     
-    if now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and now - last_reported > datetime.timedelta(hours = 12):
+    if (now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and \
+        now - last_reported > datetime.timedelta(hours = 12)) or settings.FORCE_EMAIL:
         body = write_report(report)
         send_mail(body)
         last_reported = datetime.datetime.utcnow()
 
-        return body
+    return body
 
 
 def write_report(report):
@@ -49,8 +49,9 @@ def write_report(report):
         sample_product = random.choice(product_list)
     else:
         sample_product = ""
-        
-    body = "The following files were harvested from {0} to {1}:<br><br><table>".format(last_reported.strftime("%Y-%m-%d %H:%M:00"), now.strftime("%Y-%m-%d %H:%M:00"))
+
+    body  = "<html><body>"
+    body += "<p>The following files were harvested from {0} to {1}:</p><br><br><table>".format(last_reported.strftime("%Y-%m-%d %H:%M:00"), now.strftime("%Y-%m-%d %H:%M:00"))
     body += "<tr><th>Filename</th><th>Size (MB)</th><th>Download Speed</th></tr>"
 
     for key, product in report._record.items():
@@ -92,7 +93,7 @@ def write_report(report):
                                                                                                                  cause   = error)
         
     if error_list:
-        body += "<br><br><br>The following errors occured during harvesting:<br><table>"
+        body += "<br><br><br><p>The following errors occured during harvesting:</p><br><table>"
 
         for key, errors in error_list.items():
             try:
@@ -106,6 +107,7 @@ def write_report(report):
                 logger.warn("Error in report pass 2 - {exp}".format(exp = exp))
 
     body += "</table>"
+    body += "</html></body>"
 
     return body
 
