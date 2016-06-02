@@ -23,6 +23,7 @@ import eodnharvester.settings as settings
 import eodnharvester.reporter as reporter
 import eodnharvester.auth as auth
 from eodnharvester.search import Search
+from eodnharvester.product import Product
 from eodnharvester.conf import HarvesterConfigure
 
 
@@ -74,9 +75,13 @@ def _getUnisDirectory(basename):
 def downloadProduct(product):
     logger = history.GetLogger()
     log = history.Record()
-
+    
+    log.write(product.filename, "scene", product.scene)
+    log.write(product.filename, "code", product.productCode)
+    log.write(product.filename, "metadata", product.metadata)
+    log.write(product.filename, "usgs_live", product.metadata["acquisitionDate"])
     logger.info("Downloading {name} from USGS".format(name = product.filename))
-
+    
     output_file = "{workspace}/{filename}".format(workspace = settings.WORKSPACE, 
                                                   filename = product.filename)
     filesize = 0
@@ -94,7 +99,7 @@ def downloadProduct(product):
         logger.error(error)
         log.error(history.SYS, error)
         return False, log
-
+        
     try:
         with open(output_file, 'wb') as f:
             if settings.VERBOSE and settings.THREADS <= 1:
@@ -122,7 +127,7 @@ def downloadProduct(product):
     finally:
         if settings.VERBOSE and settings.THREADS <= 1:
             sys.stdout.write("\n")
-
+    
     end_time = datetime.datetime.utcnow()
     
     try:
@@ -130,11 +135,11 @@ def downloadProduct(product):
         delta_s = (delta.days * 3600 * 24) + delta.seconds
         delta_micro = (delta_s * 10**6) + delta.microseconds
         speed = float(filesize) / float(delta_micro)
-        log.write(product.filename, "filesize", str(filesize))
-        log.write(product.filename, "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
     except Exception as exp:
         logger.error("Unable to calculate download speed")
-
+    
+    log.write(product.filename, "filesize", str(filesize))
+    log.write(product.filename, "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
     return output_file, log
     
 
@@ -144,7 +149,7 @@ def lorsUpload(filename, basename):
                                                              unis_port = settings.UNIS_PORT)
     logger = history.GetLogger()
     directory = _getUnisDirectory(basename)
-
+    
     try:
         duration = "--duration={0}h".format(settings.LoRS["duration"])
         call = subprocess.Popen(['lors_upload', duration,
@@ -166,12 +171,12 @@ def lorsUpload(filename, basename):
                 logger.info(out.decode('utf-8'))
             if err:
                 logger.error(err.decode('utf-8'))
- 
+                
     except Exception as exp:
         logger.error("Unknown error while calling lors_upload - {exp}".format(exp = exp))
-            
+        
     return result
-
+    
     
 def addMetadata(product):
     logger = history.GetLogger()
@@ -218,7 +223,7 @@ def createProduct(product):
     if productExists(product):
         logger.info("Product on record, skipping...")
         return None
-
+        
     if product.initialize():
         filename, log = downloadProduct(product)
         if not filename:
@@ -226,13 +231,30 @@ def createProduct(product):
     else:
         return None
     
-    lorsUpload(filename, product.basename)
+    now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    upload_result = lorsUpload(filename, product.basename)
+    if upload_result == 0:
+        log.write(product.filename, "uploaded", True)
+    elif upload_result == -6:
+        log.write(product.filename, "complete", False)
+        log.write(product.filename, "timeout", log.read(product.filename, "timeout") or 1)
+    else:
+        log.write(product.filename, "complete", False)
     
     if addMetadata(product):
-        log.write(product.filename, "complete", True)
-        
+        log.write(product.filename, "eodn_live", now)
+        with open("{ws}/harvest.stat".format(ws = settings.WORKSPACE), 'a+') as f:
+            vals = { "ts": now,
+                     "scene": log.read(product.filename, "scene"),
+                     "code": log.read(product.filename, "code"),
+                     "filesize": log.read(product.filename, "filesize"),
+                     "speed": log.read(product.filename, "download_speed"),
+                     "usgs_live": log.read(product.filename, "usgs_live"),
+                     "eodn_live": log.read(product.filename, "eodn_live") }
+            f.write("{ts},{scene},{code},{filesize},{speed},{usgs_live},{eodn_live}\n".format(**vals))
+            
     try:
-        logger.info("Removing {product}".format(product = product.filename))
+        logger.info("Removing {product} from system".format(product = product.filename))
         os.remove(filename)
     except Exception as exp:
         error = "Failed to remove local file - {exp}".format(exp = exp)
@@ -241,7 +263,9 @@ def createProduct(product):
         
     return log
 
-
+def productFromJob(job):
+    tmpProduct = Product(job["scene"], job["code"], job["filesize"], job["metadata"])
+    return createProduct(tmpProduct)
 
 def harvest(scene):
     log = history.Record()
@@ -256,7 +280,7 @@ def harvest(scene):
         for product in scene:
             report = createProduct(product)
             log.merge(report)
-
+    
     return log
 
 
@@ -265,35 +289,76 @@ def run():
     logger.info("Starting harvester for {name}....".format(name = settings.HARVEST_NAME))
     log = history.Record()
     
-    window_start = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
-    window_end = datetime.datetime.utcnow()
+    transac_file = "{ws}/harvest.trans".format(ws = settings.WORKSPACE)
+    if not os.path.isfile(transac_file):
+        with open(transac_file, 'w+') as f:
+            ts = datetime.datetime.utcnow() - datetime.timedelta(**settings.HARVEST_WINDOW)
+            tmpTransaction = {
+                "ts": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "queue": []
+            }
+            f.write(json.dumps(tmpTransaction))
+    
     configManager = HarvesterConfigure()
     
     while True:
         try:
+            with open(transac_file) as f:
+                transaction = json.loads(f.read())
+            
+            window_start = transaction["ts"]
             window_end = datetime.datetime.utcnow()
-            new_start = window_end
+            conn_err = False
+            
+            if settings.THREADS > 1:
+                with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
+                    for report in executor.map(productFromJob, transaction["queue"]):
+                        log.merge(report)
+            else:
+                for job in transaction["queue"]:
+                    report = productFromJob(job)
+                    log.merge(report)
+            
             for config in configManager.get():
-                config["startDate"] = window_start.strftime("%Y-%m-%dT%H:%M:%SZ")
+                config["startDate"] = window_start
                 config["endDate"]   = window_end.strftime("%Y-%m-%dT%H:%M:%SZ")
                 config["maxResults"]  = settings.MAX_RESULTS
                 
                 search = Search(**config)
                 if settings.THREADS > 1:
                     with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
-                        for report in executor.map(harvest, search):
-                            log.merge(report)
+                        try:
+                            for report in executor.map(harvest, search):
+                                log.merge(report)
+                        except Exception:
+                            conn_err = True
                 else:
-                    for scene in search:
-                        report = harvest(scene)
-                        log.merge(report)
+                    try:
+                        for scene in search:
+                            report = harvest(scene)
+                            log.merge(report)
+                    except Exception:
+                        conn_err = True
                             
                 log.merge(search.log)
                 
-            reporter.CreateReport(log)
+            print("Finalizing Transaction...")
+            todo = list(filter(lambda product: product != history.SYS and not log.recordComplete(product), list(log._record.keys())))
+            todo = list(map(lambda product: { "scene":    log._record[product]["scene"],
+                                         "code":     log._record[product]["code"],
+                                         "filesize": log._record[product]["filesize"],
+                                         "metadata": log._record[product]["metadata"] }, todo))
+            if reporter.CreateReport(log):
+                log = history.Record()
+                
+            with open(transac_file, 'w') as f:
+                tmpTransaction = {
+                    "ts": window_start if conn_err else window_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "queue": todo
+                }
+                f.write(json.dumps(tmpTransaction))
             
-            window_start = new_start
-            delay_time = datetime.datetime.utcnow() - new_start
+            delay_time = datetime.datetime.utcnow() - window_end
             if delay_time < datetime.timedelta(**settings.HARVEST_WINDOW):
                 auth.logout(log, force = True)
                 remaining_time = datetime.timedelta(**settings.HARVEST_WINDOW) - delay_time

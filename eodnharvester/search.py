@@ -66,7 +66,7 @@ class Search(object):
             logger.error(error)
             self.log.error(history.SYS, error)
             auth.logout(self.log)
-            return 0
+            raise Exception(error)
         except ValueError as exp:
             error = "Error while decoding scene json - {exp}".format(exp = exp)
             logger.error(error)

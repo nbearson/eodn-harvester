@@ -13,22 +13,24 @@ import eodnharvester.settings as settings
 import eodnharvester.auth as auth
 import eodnharvester.history as history
 
-last_reported = datetime.datetime.utcnow()
+last_reported = None
 
 def CreateReport(report):
     global last_reported
     now = datetime.datetime.now()
+    body = None
 
     if settings.DEBUG:
         body = write_report(report)
         print(body)
     
     if (now.hour >= settings.REPORT_HOUR and now.hour <= settings.REPORT_HOUR + 2 and \
-        now - last_reported > datetime.timedelta(hours = 12)) or settings.FORCE_EMAIL:
+        (not last_reported or now - last_reported > datetime.timedelta(hours = 12))) or \
+        settings.FORCE_EMAIL:
         body = write_report(report)
         send_mail(body)
         last_reported = datetime.datetime.utcnow()
-
+        
     return body
 
 
@@ -43,7 +45,7 @@ def write_report(report):
     if history.SYS in product_list:
         product_list.remove(history.SYS)
 
-    product_list = list(filter(lambda product: product.endswith(".tar.gz") and "complete" in report._record[product] and datetime.datetime.strptime(report._record[product]["ts"], "%Y-%m-%d %H:%M:%S") > last_reported,
+    product_list = list(filter(lambda product: product.endswith(".tar.gz") and report._record[product]["complete"] and datetime.datetime.strptime(report._record[product]["ts"], "%Y-%m-%d %H:%M:%S") > last_reported,
                                product_list))
     if product_list:
         sample_product = random.choice(product_list)

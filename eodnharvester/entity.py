@@ -19,13 +19,13 @@ from eodnharvester.product import Product
 class Entity(object):
     def __init__(self, **kwargs):
         self.entity_id = kwargs.get("entityId", None)
-
+        
         self.populated = False
         self.log = history.Record()
-
+        
         self.metadata = {}
         self.products = []
-
+        
         self.metadata["acquisitionDate"] = kwargs.get("acquisitionDate", None)
         self.metadata["startTime"]       = kwargs.get("startTime", None)
         self.metadata["endTime"]         = kwargs.get("endTime", None)
@@ -42,7 +42,7 @@ class Entity(object):
     def GetProducts(self):
         logger = history.GetLogger()
         apiKey = auth.login(self.log)
-
+        
         self.products = []
         response = ""
         url = "http://{usgs_host}/inventory/json/{request_code}"
