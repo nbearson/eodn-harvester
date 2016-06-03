@@ -67,12 +67,10 @@ DOWNLOAD_CHUNKSIZE = 8192 # int
 #                                #
 ##################################
 
-UNIS_HOST = "localhost"
-UNIS_PORT = 8888
-#UNIS_HOST = "unis.crest.iu.edu"          # hostname or ip
-#UNIS_PORT = 8890                         # port as int
+UNIS_HOST = "unis.crest.iu.edu"          # hostname or ip
+UNIS_PORT = 8890                         # port as int
 LoRS = {
-    "duration": 1,
+    "duration": 24 * 30,
     "copies":   3,               # replication factor           int
     "depots":   20,              # number of depots             int
     "threads":  10,              # number of threads            int
