@@ -43,21 +43,24 @@ class Record(object):
 
     def __init__(self):
         self._record = {}
-
+        
     def recordComplete(self, product_id):
-        return product_id in self._record and "complete" in self._record[product_id]
+        return product_id in self._record and self._record[product_id]["complete"]
     
     def hasRecord(self, product_id):
         return product_id in self._record
-            
-
+    
     def write(self, product_id, key, value):
         try:
             self._record[product_id][key] = value
         except Exception as exp:
-            self._record[product_id] = {}
-            self._record[product_id]["ts"] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-            self._record[product_id][key] = value
+            self._record[product_id] = {
+                "complete": False,
+                "metadata": False,
+                "timeout": 0,
+                "ts": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                key: value
+            }
             
     def error(self, product_id, value):
         ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -71,6 +74,12 @@ class Record(object):
 
             self._record[product_id]["errors"] = []
             self._record[product_id]["errors"].append(report)
+
+    def read(self, product_id, key):
+        try:
+            return self._record[product_id][key]
+        except Exception as exp:
+            return None
 
     def merge(self, log):
         if type(log) is not Record:
