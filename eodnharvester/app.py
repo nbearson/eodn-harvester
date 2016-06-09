@@ -138,12 +138,12 @@ def downloadProduct(product):
     except Exception as exp:
         logger.error("Unable to calculate download speed")
     
-    log.write(product.filename, "filesize", str(filesize))
+    log.write(product.filename, "filesize", str(product.filesize))
     log.write(product.filename, "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
     return output_file, log
     
 
-def lorsUpload(filename, basename):
+def lorsUpload(filename, basename, timeouts = 1):
     result = '0'
     output = "http://{unis_host}:{unis_port}/exnodes".format(unis_host = settings.UNIS_HOST,
                                                              unis_port = settings.UNIS_PORT)
@@ -158,6 +158,7 @@ def lorsUpload(filename, basename):
                                  '-m', str(settings.LoRS["depots"]),
                                  '-t', str(settings.LoRS["threads"]),
                                  '-b', str(settings.LoRS["size"]),
+                                 '-T', "{t}m".format(t = 3 * timeouts),
                                  '--depot-list',
                                  '--xndrc={xndrc}'.format(xndrc = settings.LoRS["xndrc"]),
                                  '-V', '1' if settings.VERBOSE else '0',
@@ -175,6 +176,7 @@ def lorsUpload(filename, basename):
     except Exception as exp:
         logger.error("Unknown error while calling lors_upload - {exp}".format(exp = exp))
         
+    
     return result
     
     
@@ -186,7 +188,11 @@ def addMetadata(product):
                                                                   name = product.filename)
     try:
         response = requests.get(url, cert = (settings.SSL_OPTIONS["cert"], settings.SSL_OPTIONS["key"]))
-        response = response.json()[0]
+        response = response.json()
+        if isinstance(response, list):
+            response = response[0]
+        else:
+            raise IndexError("Object not in UNIS")
         tmpId    = response["id"]
         
         if "metadata" not in response:
@@ -209,15 +215,19 @@ def addMetadata(product):
         error = "Error while decoding unis json - {exp}".format(exp = exp)
         logger.error(error)
         return False
+    except IndexError as exp:
+        error = "Failed to add metadata - {exp}".format(exp = exp)
+        logging.error(error)
+        return False
     except Exception as exp:
-        error = "Unkown error while contacting UNIS - {exp}".format(exp = exp)
+        error = "Unknown error while contacting UNIS - {exp}".format(exp = exp)
         logger.error(error)
         return False
-
+        
     return True
 
 
-def createProduct(product):
+def createProduct(product, attempt = 0):
     logger = history.GetLogger()
     
     if productExists(product):
@@ -228,20 +238,19 @@ def createProduct(product):
         filename, log = downloadProduct(product)
         if not filename:
             return log
+        log.write(product.filename, "attempt", attempt + 1)
     else:
         return None
     
     now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    upload_result = lorsUpload(filename, product.basename)
+    upload_result = lorsUpload(filename, product.basename, attempt)
     if upload_result == 0:
         log.write(product.filename, "uploaded", True)
-    elif upload_result == -6:
-        log.write(product.filename, "complete", False)
-        log.write(product.filename, "timeout", log.read(product.filename, "timeout") or 1)
     else:
         log.write(product.filename, "complete", False)
     
-    if addMetadata(product):
+    if upload_result == 0 and addMetadata(product):
+        log.write(product.filename, "complete", True)
         log.write(product.filename, "eodn_live", now)
         with open("{ws}/harvest.stat".format(ws = settings.WORKSPACE), 'a+') as f:
             vals = { "ts": now,
@@ -265,7 +274,7 @@ def createProduct(product):
 
 def productFromJob(job):
     tmpProduct = Product(job["scene"], job["code"], job["filesize"], job["metadata"])
-    return createProduct(tmpProduct)
+    return createProduct(tmpProduct, attempt = job["attempt"])
 
 def harvest(scene):
     log = history.Record()
@@ -310,6 +319,8 @@ def run():
             window_end = datetime.datetime.utcnow()
             conn_err = False
             
+            if len(transaction["queue"]) > 0:
+                logger.info("[{c}] Transaction misses found - processing...".format(c = transaction["queue"]))
             if settings.THREADS > 1:
                 with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
                     for report in executor.map(productFromJob, transaction["queue"]):
@@ -344,10 +355,11 @@ def run():
                 
             print("Finalizing Transaction...")
             todo = list(filter(lambda product: product != history.SYS and not log.recordComplete(product), list(log._record.keys())))
-            todo = list(map(lambda product: { "scene":    log._record[product]["scene"],
-                                         "code":     log._record[product]["code"],
-                                         "filesize": log._record[product]["filesize"],
-                                         "metadata": log._record[product]["metadata"] }, todo))
+            todo = list(map(lambda product: { "scene":    log.read(product, "scene"),
+                                              "code":     log.read(product, "code"),
+                                              "filesize": log.read(product, "filesize"),
+                                              "metadata": log.read(product, "metadata"),
+                                              "attempt":    log.read(product, "attempt") }, todo))
             if reporter.CreateReport(log):
                 log = history.Record()
                 
