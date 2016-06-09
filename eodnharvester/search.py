@@ -74,7 +74,7 @@ class Search(object):
             auth.logout(self.log)
             return 0
         except Exception as exp:
-            error = "Unkown error while getting scene data - {exp}".format(exp = exp)
+            error = "Unknown error while getting scene data - {exp}".format(exp = exp)
             logger.error(error)
             self.log.error(history.SYS, error)
             auth.logout(self.log)
