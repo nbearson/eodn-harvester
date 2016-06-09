@@ -319,7 +319,7 @@ def run():
             conn_err = False
             
             if len(transaction["queue"]) > 0:
-                logger.info("[{c}] Transaction misses found - proccessing...".format(c = len(transaction["queue"])))
+                logger.info("[{c}] Transaction misses found - processing...".format(c = len(transaction["queue"])))
             if settings.THREADS > 1:
                 with concurrent.futures.ThreadPoolExecutor(max_workers = settings.THREADS) as executor:
                     for report in executor.map(productFromJob, transaction["queue"]):

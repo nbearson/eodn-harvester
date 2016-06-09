@@ -11,7 +11,8 @@ setup(name        = 'eodnharvester',
       include_package_data = True,
       install_requires=[
           "python-daemon",
-          "requests"
+          "requests",
+          "netifaces"
       ],
       entry_points = {
           'console_scripts': [
