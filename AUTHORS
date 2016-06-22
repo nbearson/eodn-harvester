@@ -1,0 +1,12 @@
+EODNHarvester is a daemon that gathers scenes from the United States Geological 
+Survey (USGS) using the USGS JSON interface. The USGS hosts satellite imagery 
+collected by a number of sensors. These images (a collection of images of a 
+single location - e.g. Standard and Infared - is called a scene) are uploaded 
+to the Earth Observation Depot Network (EODN) for use and data collection.
+EODNHarvester was created by the Indiana University Center for Research in 
+Extreme Scale Technologies (CREST) in Bloomington, Indiana in collaboration
+with Stephen F. Austin State University.
+
+Authors:
+Paul Blackwell <prblackwell [at] sfasu.edu>
+Jeremy Musser  <jemusser [at] indiana.edu>
