@@ -134,12 +134,12 @@ def downloadProduct(product):
         delta = end_time - start_time
         delta_s = (delta.days * 3600 * 24) + delta.seconds
         delta_micro = (delta_s * 10**6) + delta.microseconds
-        speed = float(filesize) / float(delta_micro)
+        speed = float(float(filesize) / 2**20) / float(float(delta_micro) / 10**6)
     except Exception as exp:
         logger.error("Unable to calculate download speed")
     
-    log.write(product.filename, "filesize", str(product.filesize))
-    log.write(product.filename, "download_speed", "{speed:0.3f} bytes/s".format(speed = speed * 10**6))
+    log.write(product.filename, "filesize", str(filesize))
+    log.write(product.filename, "download_speed", "{speed:0.3f} MB/s".format(speed = speed))
     return output_file, log
     
 
@@ -251,14 +251,16 @@ def createProduct(product, attempt = 0):
     if upload_result == 0 and addMetadata(product):
         log.write(product.filename, "complete", True)
         log.write(product.filename, "eodn_live", now)
+        vals = { "ts": now,
+                 "scene": log.read(product.filename, "scene"),
+                 "code": log.read(product.filename, "code"),
+                 "filesize": log.read(product.filename, "filesize"),
+                 "speed": log.read(product.filename, "download_speed"),
+                 "usgs_live": log.read(product.filename, "usgs_live"),
+                 "eodn_live": log.read(product.filename, "eodn_live") }
         with open("{ws}/harvest.stat".format(ws = settings.WORKSPACE), 'a+') as f:
-            vals = { "ts": now,
-                     "scene": log.read(product.filename, "scene"),
-                     "code": log.read(product.filename, "code"),
-                     "filesize": log.read(product.filename, "filesize"),
-                     "speed": log.read(product.filename, "download_speed"),
-                     "usgs_live": log.read(product.filename, "usgs_live"),
-                     "eodn_live": log.read(product.filename, "eodn_live") }
+            f.write("{ts},{scene},{code},{filesize},{speed},{usgs_live},{eodn_live}\n".format(**vals))
+        with open("{ws}/harvest.tmp".format(ws = settings.WORKSPACE), 'a+') as f:
             f.write("{ts},{scene},{code},{filesize},{speed},{usgs_live},{eodn_live}\n".format(**vals))
             
     try:
@@ -295,7 +297,11 @@ def harvest(scene):
 def run():
     logger = history.GetLogger()
     logger.info("Starting harvester for {name}....".format(name = settings.HARVEST_NAME))
-    log = history.Record()
+    logger.info("  Starting report thread [Dest: {email}, Time: {hour}:00{force}]".format(email = settings.REPORT_EMAIL,
+                                                                                          hour  = settings.REPORT_HOUR,
+                                                                                          force = " FORCE" if settings.FORCE_EMAIL else ""))
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    executor.submit(reporter.runner, settings.REPORT_HOUR)
     
     transac_file = "{ws}/harvest.trans".format(ws = settings.WORKSPACE)
     if not os.path.isfile(transac_file):
@@ -310,6 +316,7 @@ def run():
     configManager = HarvesterConfigure()
     
     while True:
+        log = history.Record()
         try:
             with open(transac_file) as f:
                 transaction = json.loads(f.read())
@@ -352,16 +359,12 @@ def run():
                             
                 log.merge(search.log)
                 
-            print("Finalizing Transaction...")
             todo = list(filter(lambda product: product != history.SYS and not log.recordComplete(product), list(log._record.keys())))
             todo = list(map(lambda product: { "scene":    log.read(product, "scene"),
                                               "code":     log.read(product, "code"),
                                               "filesize": log.read(product, "filesize"),
                                               "metadata": log.read(product, "metadata"),
                                               "attempt":  log.read(product, "attempt") }, todo))
-            if reporter.CreateReport(log):
-                log = history.Record()
-                
             with open(transac_file, 'w') as f:
                 tmpTransaction = {
                     "ts": window_start if conn_err else window_end.strftime("%Y-%m-%dT%H:%M:%SZ"),

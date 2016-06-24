@@ -40,7 +40,7 @@ def GetLogger():
 
 class Record(object):
     _record = {}
-
+    
     def __init__(self):
         self._record = {}
         
@@ -88,7 +88,7 @@ class Record(object):
         for product in log._record:
             if product not in self._record:
                 self._record[product] = {}
-
+                
             for key in log._record[product]:
                 if key not in self._record[product]:
                     self._record[product][key] = []
