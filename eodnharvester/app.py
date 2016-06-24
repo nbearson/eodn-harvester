@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-#############################################
-#  EODNHarvest gathers landsat imagery from #
-#  the USGS and exports it to EODN.         #
-#                                           #
-#  @author:  Jeremy Musser                  #
-#  @date:    06/07/2015                     #
-#  @version: 0.3.1                          #
-#############################################
+# =============================================================================
+#  EODNHarvester
+#
+#  Copyright (c) 2015-2016, Trustees of Indiana University,
+#  All rights reserved.
+#
+#  This software may be modified and distributed under the terms of the BSD
+#  license.  See the COPYING file for details.
+#
+#  This software was created at the Indiana University Center for Research in
+#  Extreme Scale Technologies (CREST).
+# =============================================================================
 import daemon
 import datetime
 import time
