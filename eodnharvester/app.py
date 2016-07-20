@@ -70,7 +70,7 @@ def productExists(product):
         logger.error(error)
         return False
     except Exception as exp:
-        error = "Unkown error while contacting UNIS - {exp}".format(exp = exp)
+        error = "Unknown error while contacting UNIS - {exp}".format(exp = exp)
         logger.error(error)
         return False
     
