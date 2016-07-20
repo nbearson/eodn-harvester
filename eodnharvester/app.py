@@ -131,14 +131,14 @@ def downloadProduct(product):
                 f.write(chunk)
                 f.flush()
                 filesize += len(chunk)
-                
-                if settings.VERBOSE and settings.THREADS <= 1:
-                    percent = float(filesize) / float(product.filesize)
-                    sys.stdout.write("\r[{bar:<30}] {percent:0.2f}%  <{so_far:>10} of {total:<10}>".format(bar     = "#" * int(30 * percent), 
-                                                                                                           percent = float(percent * 100),
-                                                                                                           so_far  = filesize,
-                                                                                                           total   = product.filesize))
-                    sys.stdout.flush()
+#                
+#                if settings.VERBOSE and settings.THREADS <= 1:
+#                    percent = float(filesize) / float(product.filesize)
+#                    sys.stdout.write("\r[{bar:<30}] {percent:0.2f}%  <{so_far:>10} of {total:<10}>".format(bar     = "#" * int(30 * percent), 
+#                                                                                                           percent = float(percent * 100),
+#                                                                                                           so_far  = filesize,
+#                                                                                                           total   = product.filesize))
+#                    sys.stdout.flush()
     except Exception as exp:
         error = "Unknown error while opening and storing file - {exp}".format(exp = exp)
         logger.error(error)
