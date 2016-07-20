@@ -37,6 +37,21 @@ AUTH_VALUE = settings.AUTH_VALUE
 
 def productExists(product):
     logger = history.GetLogger()
+
+    try:
+        if settings.PRESERVE_LOCALLY and \
+           os.path.exists(os.path.join(settings.LOCAL_PRESERVE_DIR, product.filename)) or \
+           os.path.exists(os.path.join(settings.LOCAL_QUARANTINE_DIR, product.filename)):
+            logger.info("{name} has already been downloaded.".format(name = product.filename))
+            return True
+    except Exception as exp:
+        error = "Unknown error while checking for file locally - {exp}".format(exp = exp)
+        logger.error(error)
+        return False
+
+    logger.info("{name} doesn't already exist; download it.".format(name = product.filename))
+    return False # FIXME: this is our shortcut so we don't keep trying to hit an EODN node that I've already cut off access to
+    # FIXME: SO NOTHING AFTER THIS HAPPENS CURRENTLY
     url = "{protocol}://{host}:{port}/exnodes?metadata.scene={scene}&metadata.productCode={code}".format(protocol = "https" if settings.USE_SSL else "http",
                                                                                                          host  = settings.UNIS_HOST,
                                                                                                          port  = settings.UNIS_PORT,
@@ -233,17 +248,19 @@ def addMetadata(product):
 def createProduct(product, attempt = 0):
     logger = history.GetLogger()
     
+    # TODO: it'd be nice to not always have to initialize to get the filename, as
+    #       that seems to hit USGS
+    if not product.initialize():
+        return None
+
     if productExists(product):
         logger.info("Product on record, skipping...")
         return None
         
-    if product.initialize():
-        filename, log = downloadProduct(product)
-        if not filename:
-            return log
-        log.write(product.filename, "attempt", attempt + 1)
-    else:
-        return None
+    filename, log = downloadProduct(product)
+    if not filename:
+        return log
+    log.write(product.filename, "attempt", attempt + 1)
     
     now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     upload_result = lorsUpload(filename, product.basename, attempt)
@@ -266,14 +283,23 @@ def createProduct(product, attempt = 0):
             f.write("{ts},{scene},{code},{filesize},{speed},{usgs_live},{eodn_live}\n".format(**vals))
         with open("{ws}/harvest.tmp".format(ws = settings.WORKSPACE), 'a+') as f:
             f.write("{ts},{scene},{code},{filesize},{speed},{usgs_live},{eodn_live}\n".format(**vals))
-            
-    try:
-        logger.info("Removing {product} from system".format(product = product.filename))
-        os.remove(filename)
-    except Exception as exp:
-        error = "Failed to remove local file - {exp}".format(exp = exp)
-        logger.error(error)
-        log.error(product.filename, error)
+    
+    if settings.PRESERVE_LOCALLY:
+        try:
+            logger.info("Moving {product} to {product_dir}".format(product = product.filename, product_dir = settings.LOCAL_PRESERVE_DIR))
+            os.rename(filename, os.path.join(settings.LOCAL_PRESERVE_DIR, product.filename))
+        except Exception as exp:
+            error = "Failed to move local file - {exp}".format(exp = exp)
+            logger.error(error)
+            log.error(product.filename, error)
+    else:
+        try:
+            logger.info("Removing {product} from system".format(product = product.filename))
+            os.remove(filename)
+        except Exception as exp:
+            error = "Failed to remove local file - {exp}".format(exp = exp)
+            logger.error(error)
+            log.error(product.filename, error)
         
     return log
 

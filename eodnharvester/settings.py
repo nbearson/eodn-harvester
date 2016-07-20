@@ -62,6 +62,16 @@ SORT_ORDER  = "DESC"       # ASC or DESC string
 NODE        = "EE"         # string
 
 
+##################################
+#                                #
+#     Preservation Settings      #
+#                                #
+##################################
+
+# TODO: maybe rename "PRESERVE" to "MIRROR"
+PRESERVE_LOCALLY   = True                         # boolean
+LOCAL_PRESERVE_DIR = "/data3/eodn/harvester-save" # directory string
+LOCAL_QUARANTINE_DIR = "/data3/eodn/harvester-quarantine" # directory string
 
 ##################################
 #                                #
