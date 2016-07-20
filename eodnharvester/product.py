@@ -51,7 +51,7 @@ class Product(object):
             logger.debug(entity_data)
             
             if entity_data["errorCode"]:
-                error = "Recieved error from USGS - {err}".format(err = entity_data["error"])
+                error = "Received error from USGS - {err}".format(err = entity_data["error"])
                 logger.error(error)
                 auth.logout()
                 return False
@@ -70,7 +70,7 @@ class Product(object):
         
         try:
             if len(entity_data["data"]) == 0:
-                raise Exception("No download URL recieved")
+                raise Exception("No download URL received")
             tmpURL = entity_data["data"][0]
             self.basename    = self._getBasename(tmpURL)
             self.filename    = self._getFilename(self.basename, self.productCode)
@@ -78,7 +78,7 @@ class Product(object):
             
             logger.info("  Found {product} at {url}".format(product = self.productCode, url = tmpURL))
         except Exception as exp:
-            logger.error("Recieved bad download data from USGS - {exp}".format(exp = exp))
+            logger.error("Received bad download data from USGS - {exp}".format(exp = exp))
             auth.logout()
             return False
         
